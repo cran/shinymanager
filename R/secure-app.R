@@ -24,47 +24,7 @@
 #'
 #' @name secure-app
 #'
-#' @examples
-#' if (interactive()) {
-#'
-#'   # define some credentials
-#'   credentials <- data.frame(
-#'     user = c("shiny", "shinymanager"),
-#'     password = c("azerty", "12345"),
-#'     stringsAsFactors = FALSE
-#'   )
-#'
-#'   library(shiny)
-#'   library(shinymanager)
-#'
-#'   ui <- fluidPage(
-#'     tags$h2("My secure application"),
-#'     verbatimTextOutput("auth_output")
-#'   )
-#'
-#'   # Wrap your UI with secure_app
-#'   ui <- secure_app(ui)
-#'
-#'
-#'   server <- function(input, output, session) {
-#'
-#'     # call the server part
-#'     # check_credentials returns a function to authenticate users
-#'     res_auth <- secure_server(
-#'       check_credentials = check_credentials(credentials)
-#'     )
-#'
-#'     output$auth_output <- renderPrint({
-#'       reactiveValuesToList(res_auth)
-#'     })
-#'
-#'     # your classic server logic
-#'
-#'   }
-#'
-#'   shinyApp(ui, server)
-#'
-#' }
+#' @example examples/secure_app.R
 secure_app <- function(ui, ..., enable_admin = FALSE, head_auth = NULL, theme = NULL, language = "en") {
   if (!language %in% c("en", "fr")) {
     warning("Only supported language for the now are: en, fr", call. = FALSE)
@@ -97,10 +57,7 @@ secure_app <- function(ui, ..., enable_admin = FALSE, head_auth = NULL, theme = 
         )
         return(pwd_ui)
       }
-      if (isTRUE(enable_admin) && .tok$is_admin(token) & identical(admin, "true")) {
-        if (is.null(.tok$get_sqlite_path())) {
-          warning("Admin mode is only available when using a SQLite database!", call. = FALSE)
-        }
+      if (isTRUE(enable_admin) && .tok$is_admin(token) & identical(admin, "true") & !is.null(.tok$get_sqlite_path())) {
         navbarPage(
           title = "Admin",
           theme = theme,
@@ -133,7 +90,7 @@ secure_app <- function(ui, ..., enable_admin = FALSE, head_auth = NULL, theme = 
           )
         )
       } else {
-        if (isTRUE(enable_admin) && .tok$is_admin(token)) {
+        if (isTRUE(enable_admin) && .tok$is_admin(token) && !is.null(.tok$get_sqlite_path())) {
           menu <- fab_button(
             actionButton(
               inputId = ".shinymanager_logout",
@@ -149,6 +106,9 @@ secure_app <- function(ui, ..., enable_admin = FALSE, head_auth = NULL, theme = 
             )
           )
         } else {
+          if (isTRUE(enable_admin) && .tok$is_admin(token) && is.null(.tok$get_sqlite_path())) {
+            warning("Admin mode is only available when using a SQLite database!", call. = FALSE)
+          }
           menu <- fab_button(
             actionButton(
               inputId = ".shinymanager_logout",
@@ -159,8 +119,12 @@ secure_app <- function(ui, ..., enable_admin = FALSE, head_auth = NULL, theme = 
           )
         }
         save_logs(token)
-        tagList(ui, menu, shinymanager_where("application"), 
-                singleton(tags$head(tags$script(src = "shinymanager/timeout.js")))
+        if (is.function(ui)) {
+          ui <- ui(request)
+        }
+        tagList(
+          ui, menu, shinymanager_where("application"),
+          singleton(tags$head(tags$script(src = "shinymanager/timeout.js")))
         )
       }
     } else {
@@ -183,7 +147,8 @@ secure_app <- function(ui, ..., enable_admin = FALSE, head_auth = NULL, theme = 
 #'
 #' @export
 #'
-#' @importFrom shiny callModule getQueryString parseQueryString updateQueryString observe getDefaultReactiveDomain isolate invalidateLater
+#' @importFrom shiny callModule getQueryString parseQueryString
+#'  updateQueryString observe getDefaultReactiveDomain isolate invalidateLater
 #'
 #' @rdname secure-app
 secure_server <- function(check_credentials, timeout = 15, session = shiny::getDefaultReactiveDomain()) {
@@ -241,14 +206,14 @@ secure_server <- function(check_credentials, timeout = 15, session = shiny::getD
     updateQueryString(queryString = sprintf("?token=%s&admin=true", token), session = session, mode = "replace")
     .tok$reset_count(token)
     session$reload()
-  })
+  }, ignoreInit = TRUE)
   
   observeEvent(session$input$.shinymanager_app, {
     token <- getToken(session = session)
     updateQueryString(queryString = sprintf("?token=%s", token), session = session, mode = "replace")
     .tok$reset_count(token)
     session$reload()
-  })
+  }, ignoreInit = TRUE)
   
   observeEvent(session$input$.shinymanager_logout, {
     token <- getToken(session = session)
@@ -256,32 +221,38 @@ secure_server <- function(check_credentials, timeout = 15, session = shiny::getD
     .tok$remove(token)
     clearQueryString(session = session)
     session$reload()
-  })
+  }, ignoreInit = TRUE)
   
-  observeEvent(session$input$.shinymanager_timeout, {
-    token <- getToken(session = session)
-    if (!is.null(token)) {
-      valid_timeout <- .tok$is_valid_timeout(token, update = TRUE)
-      if(!valid_timeout){
-        .tok$remove(token)
-        clearQueryString(session = session)
-        session$reload()
+  
+  
+  if (timeout > 0) {
+    
+    observeEvent(session$input$.shinymanager_timeout, {
+      token <- getToken(session = session)
+      if (!is.null(token)) {
+        valid_timeout <- .tok$is_valid_timeout(token, update = TRUE)
+        if(!valid_timeout){
+          .tok$remove(token)
+          clearQueryString(session = session)
+          session$reload()
+        }
       }
-    }
-  })
-
-  observe({
-    invalidateLater(30000, session)
-    token <- getToken(session = session)
-    if (!is.null(token)) {
-      valid_timeout <- .tok$is_valid_timeout(token, update = FALSE)
-      if(!valid_timeout){
-        .tok$remove(token)
-        clearQueryString(session = session)
-        session$reload()
+    })
+    
+    observe({
+      invalidateLater(30000, session)
+      token <- getToken(session = session)
+      if (!is.null(token)) {
+        valid_timeout <- .tok$is_valid_timeout(token, update = FALSE)
+        if(!valid_timeout){
+          .tok$remove(token)
+          clearQueryString(session = session)
+          session$reload()
+        }
       }
-    }
-  })
+    })
+    
+  }
   
   return(user_info_rv)
 }

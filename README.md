@@ -1,19 +1,34 @@
-# shinymanager
+# shinymanager <img src="inst/sticker/shinymanager.png" width=200 align="right" />
 
 [![Travis build status](https://travis-ci.org/datastorm-open/shinymanager.svg?branch=master)](https://travis-ci.org/datastorm-open/shinymanager)
-[![Project Status: WIP – Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
+[![version](http://www.r-pkg.org/badges/version/shinymanager)](https://CRAN.R-project.org/package=shinymanager)
+[![cranlogs](http://cranlogs.r-pkg.org/badges/shinymanager)](https://CRAN.R-project.org/package=shinymanager)
+[![cran checks](https://cranchecks.info/badges/worst/shinymanager)](https://cranchecks.info/pkgs/shinymanager)
+[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 
 > Simple and secure authentification mechanism for single 'Shiny' applications. Credentials are stored in an encrypted 'SQLite' database. Source code of main application is protected until authentication is successful.
 
 
-Live demo: http://shinyapps.dreamrs.fr/shinymanager-demo/
+Live demo:
+
+* On Shiny-server: http://shinyapps.dreamrs.fr/shinymanager-demo/
+* On shinyapps.io : https://dreamrs.shinyapps.io/shinymanager-demo/
 
 You can authenticate with:
  * user: `shiny` / password: `shiny`
  * user: `shinymanager` / password: `shinymanager` (Admin)
 
 
+
 ### Installation
+
+Install from CRAN with :
+
+```r
+install.packages("shinymanager")
+```
+
+Or install development version from GitHub :
 
 ```r
 remotes::install_github("datastorm-open/shinymanager")

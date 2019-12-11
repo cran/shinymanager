@@ -43,6 +43,7 @@ Authentication module
 }
 \examples{
 if (interactive()) {
+
   library(shiny)
   library(shinymanager)
 
@@ -129,5 +130,6 @@ if (interactive()) {
   }
 
   shinyApp(ui, server)
+
 }
 }
