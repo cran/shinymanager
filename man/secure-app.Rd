@@ -18,6 +18,7 @@ secure_app(
 secure_server(
   check_credentials,
   timeout = 15,
+  inputs_list = NULL,
   session = shiny::getDefaultReactiveDomain()
 )
 }
@@ -36,11 +37,13 @@ of the authentication page (for custom CSS for example).}
 you can use themes provided by \code{shinythemes}.
 It will affect the authentication panel and the admin page.}
 
-\item{language}{Language to use for labels, supported values are : "en", "fr".}
+\item{language}{Language to use for labels, supported values are : "en", "fr", "br".}
 
 \item{check_credentials}{Function passed to \code{\link{auth_server}}.}
 
 \item{timeout}{Timeout session (minutes) before logout if sleeping. Defaut to 15. 0 to disable.}
+
+\item{inputs_list}{\code{list}. If database credentials, you can configure inputs for editing users information. See Details.}
 
 \item{session}{Shiny session.}
 }
@@ -49,6 +52,24 @@ A \code{reactiveValues} containing informations about the user connected.
 }
 \description{
 Secure a Shiny application and manage authentication
+}
+\details{
+If database credentials, you can configure inputs with \code{inputs_list} for editing users information 
+from the admin console. \code{start}, \code{expire}, \code{admin} and \code{password} are not configurable. 
+The others columns are rendering by defaut using a \code{textInput}. You can modify this using \code{inputs_list}.
+\code{inputs_list} must be a named list. Each name must be a column name, and then we must have the function
+ shiny to call \code{fun} and the arguments \code{args} like this : 
+ \code{
+ list(group = list(
+     fun = "selectInput", 
+     args = list(
+         choices = c("all", "restricted"), 
+         multiple = TRUE, 
+         selected = c("all", "restricted")
+      )
+     )
+)
+}
 }
 \note{
 A special input value will be accessible server-side with \code{input$shinymanager_where}
@@ -75,6 +96,11 @@ if (interactive()) {
   # Wrap your UI with secure_app
   ui <- secure_app(ui)
 
+  # change auth ui background ?
+  # ui <- secure_app(ui,
+  #                  background  = "linear-gradient(rgba(0, 0, 255, 0.5), 
+  #                  rgba(255, 255, 0, 0.5)),
+  #                  url('https://www.r-project.org/logo/Rlogo.png');")
 
   server <- function(input, output, session) {
 

@@ -6,7 +6,14 @@
 \alias{auth_server}
 \title{Authentication module}
 \usage{
-auth_ui(id, status = "primary", tag_img = NULL, tag_div = NULL)
+auth_ui(
+  id,
+  status = "primary",
+  tags_top = NULL,
+  tags_bottom = NULL,
+  background = NULL,
+  ...
+)
 
 auth_server(input, output, session, check_credentials, use_token = FALSE)
 }
@@ -17,9 +24,13 @@ auth_server(input, output, session, check_credentials, use_token = FALSE)
 Valid status are: \code{"default"}, \code{"primary"}, \code{"success"},
 \code{"warning"}, \code{"danger"}.}
 
-\item{tag_img}{A \code{tags$img} to be displayed on top of the authentication module.}
+\item{tags_top}{A \code{tags (div, img, ...)} to be displayed on top of the authentication module.}
 
-\item{tag_div}{A \code{tags$div} to be displayed on bottom of the authentication module.}
+\item{tags_bottom}{A \code{tags (div, img, ...)} to be displayed on bottom of the authentication module.}
+
+\item{background}{A optionnal \code{css} for authentication background. See example.}
+
+\item{...}{: Used for old version compatibility.}
 
 \item{input, output, session}{Standard Shiny server arguments.}
 
@@ -43,10 +54,10 @@ Authentication module
 }
 \examples{
 if (interactive()) {
-
+  
   library(shiny)
   library(shinymanager)
-
+  
   # data.frame with credentials info
   credentials <- data.frame(
     user = c("fanny", "victor"),
@@ -54,17 +65,23 @@ if (interactive()) {
     comment = c("alsace", "auvergne"),
     stringsAsFactors = FALSE
   )
-
+  
   # app
   ui <- fluidPage(
-
+    
     # authentication module
     auth_ui(
       id = "auth",
-      tag_img = tags$img(
-        src = "https://www.r-project.org/logo/Rlogo.png", width = 100
+      # add image on top ?
+      tags_top = 
+        tags$div(
+          tags$h4("Demo", style = "align:center"),
+          tags$img(
+            src = "https://www.r-project.org/logo/Rlogo.png", width = 100
+        )
       ),
-      tag_div = tags$div(
+      # add information on bottom ?
+      tags_bottom = tags$div(
         tags$p(
           "For any question, please  contact ",
           tags$a(
@@ -72,12 +89,16 @@ if (interactive()) {
             target="_top", "administrator"
           )
         )
-      )
+      ),
+      # change auth ui background ?
+      background  = "linear-gradient(rgba(0, 0, 255, 0.5),
+                       rgba(255, 255, 0, 0.5)),
+                       url('https://www.r-project.org/logo/Rlogo.png');"
     ),
-
+    
     # result of authentication
     verbatimTextOutput(outputId = "res_auth"),
-
+    
     # classic app
     headerPanel('Iris k-means clustering'),
     sidebarPanel(
@@ -91,36 +112,36 @@ if (interactive()) {
       plotOutput('plot1')
     )
   )
-
+  
   server <- function(input, output, session) {
-
+    
     # authentication module
     auth <- callModule(
       module = auth_server,
       id = "auth",
       check_credentials = check_credentials(credentials)
     )
-
+    
     output$res_auth <- renderPrint({
       reactiveValuesToList(auth)
     })
-
+    
     # classic app
     selectedData <- reactive({
-
+      
       req(auth$result)  # <---- dependency on authentication result
-
+      
       iris[, c(input$xcol, input$ycol)]
     })
-
+    
     clusters <- reactive({
       kmeans(selectedData(), input$clusters)
     })
-
+    
     output$plot1 <- renderPlot({
       palette(c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3",
                 "#FF7F00", "#FFFF33", "#A65628", "#F781BF", "#999999"))
-
+      
       par(mar = c(5.1, 4.1, 0, 1))
       plot(selectedData(),
            col = clusters()$cluster,
@@ -128,8 +149,8 @@ if (interactive()) {
       points(clusters()$centers, pch = 4, cex = 4, lwd = 4)
     })
   }
-
+  
   shinyApp(ui, server)
-
+  
 }
 }

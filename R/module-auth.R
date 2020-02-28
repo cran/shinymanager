@@ -5,9 +5,12 @@
 #' @param status Bootstrap status to use for the panel and the button.
 #'  Valid status are: \code{"default"}, \code{"primary"}, \code{"success"},
 #'  \code{"warning"}, \code{"danger"}.
-#' @param tag_img A \code{tags$img} to be displayed on top of the authentication module.
-#' @param tag_div A \code{tags$div} to be displayed on bottom of the authentication module.
-#'
+#' @param tags_top A \code{tags (div, img, ...)} to be displayed on top of the authentication module.
+#' @param tags_bottom A \code{tags (div, img, ...)} to be displayed on bottom of the authentication module.
+#' @param background A optionnal \code{css} for authentication background. See example.
+#' @param ... : Used for old version compatibility.
+#' 
+#' 
 #' @export
 #'
 #' @name module-authentication
@@ -16,16 +19,31 @@
 #' @importFrom shiny NS fluidRow column textInput passwordInput actionButton
 #'
 #' @example examples/module-auth.R
-auth_ui <- function(id, status = "primary", tag_img = NULL, tag_div = NULL) {
+auth_ui <- function(id, status = "primary", tags_top = NULL, 
+                    tags_bottom = NULL, background = NULL, ...) {
 
   ns <- NS(id)
 
   lan <- use_language()
 
+  # patch / message changing tag_img & tag_div
+  deprecated <- list(...)
+  if("tag_img" %in% names(deprecated)){
+    tags_top <- deprecated$tag_img
+    warning("'tag_img' (auth_ui, secure_app) is now deprecated. Please use 'tags_top'", call. = FALSE)
+  }
+  if("tag_div" %in% names(deprecated)){
+    tags_bottom <- deprecated$tag_div
+    warning("'tag_div' (auth_ui, secure_app) is now deprecated. Please use 'tags_bottom'", call. = FALSE)
+  }
   tagList(
     singleton(tags$head(
       tags$link(href="shinymanager/styles-auth.css", rel="stylesheet"),
-      tags$script(src = "shinymanager/bindEnter.js")
+      tags$script(src = "shinymanager/bindEnter.js"),
+      if(!is.null(background)){
+        background <- gsub(";$", "", background)
+        tags$style(HTML(paste0(".panel-auth {background:", background, ",#FFF;}")))
+      }
     )),
     tags$div(
       id = ns("auth-mod"), class = "panel-auth",
@@ -39,7 +57,7 @@ auth_ui <- function(id, status = "primary", tag_img = NULL, tag_div = NULL) {
               class = "panel-body",
               tags$div(
                 style = "text-align: center;",
-                if (!is.null(tag_img)) tag_img,
+                if (!is.null(tags_top)) tags_top,
                 tags$h3(lan$get("Please authenticate"))
               ),
               tags$br(),
@@ -65,7 +83,7 @@ auth_ui <- function(id, status = "primary", tag_img = NULL, tag_div = NULL) {
                 sprintf("bindEnter('%s');", ns(""))
               ),
               tags$div(id = ns("result_auth")),
-              if (!is.null(tag_div)) tags$hr(), tag_div
+              if (!is.null(tags_bottom)) tags$hr(), tags_bottom
             )
           )
         )
