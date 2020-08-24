@@ -19,6 +19,7 @@ secure_server(
   check_credentials,
   timeout = 15,
   inputs_list = NULL,
+  fileEncoding = "",
   session = shiny::getDefaultReactiveDomain()
 )
 }
@@ -37,13 +38,15 @@ of the authentication page (for custom CSS for example).}
 you can use themes provided by \code{shinythemes}.
 It will affect the authentication panel and the admin page.}
 
-\item{language}{Language to use for labels, supported values are : "en", "fr", "br".}
+\item{language}{Language to use for labels, supported values are : "en", "fr", "pt-BR".}
 
 \item{check_credentials}{Function passed to \code{\link{auth_server}}.}
 
 \item{timeout}{Timeout session (minutes) before logout if sleeping. Defaut to 15. 0 to disable.}
 
 \item{inputs_list}{\code{list}. If database credentials, you can configure inputs for editing users information. See Details.}
+
+\item{fileEncoding}{character string: Encoding of logs downloaded file. See \code{\link{write.table}}}
 
 \item{session}{Shiny session.}
 }
@@ -94,13 +97,13 @@ if (interactive()) {
   )
 
   # Wrap your UI with secure_app
-  ui <- secure_app(ui)
+  ui <- secure_app(ui, choose_language = TRUE)
 
   # change auth ui background ?
   # ui <- secure_app(ui,
   #                  background  = "linear-gradient(rgba(0, 0, 255, 0.5), 
   #                  rgba(255, 255, 0, 0.5)),
-  #                  url('https://www.r-project.org/logo/Rlogo.png');")
+  #                  url('https://www.r-project.org/logo/Rlogo.png')  no-repeat center fixed;")
 
   server <- function(input, output, session) {
 
@@ -114,6 +117,11 @@ if (interactive()) {
       reactiveValuesToList(res_auth)
     })
 
+    observe({
+      print(input$shinymanager_where)
+      print(input$shinymanager_language)
+    })
+    
     # your classic server logic
 
   }

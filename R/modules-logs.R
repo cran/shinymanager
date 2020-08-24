@@ -3,16 +3,18 @@
 #' @importFrom billboarder billboarderOutput
 #' @importFrom shiny NS fluidRow column icon selectInput dateRangeInput downloadButton downloadHandler conditionalPanel
 #' @importFrom htmltools tagList tags
-logs_ui <- function(id) {
+logs_ui <- function(id, lan = NULL) {
 
   ns <- NS(id)
 
-  lan <- use_language()
+  if(is.null(lan)){
+    lan <- use_language()
+  }
 
   tagList(
     fluidRow(
       column(
-        width = 8, offset = 2,
+        width = 10, offset = 1,
 
         fluidRow(
           column(
@@ -102,14 +104,13 @@ logs_ui <- function(id) {
 #'  bb_x_axis bb_zoom %>% bb_bar_color_manual
 #' @importFrom shiny reactiveValues observe req updateSelectInput updateDateRangeInput reactiveVal outputOptions
 #' @importFrom utils write.table
-logs <- function(input, output, session, sqlite_path, passphrase) {
+logs <- function(input, output, session, sqlite_path, passphrase, 
+                 fileEncoding = "", lan = NULL) {
 
   ns <- session$ns
   jns <- function(x) {
     paste0("#", ns(x))
   }
-
-  lan <- use_language()
 
   logs_rv <- reactiveValues(logs = NULL, logs_period = NULL, users = NULL)
   print_app_input <- reactiveVal(FALSE)
@@ -184,7 +185,7 @@ logs <- function(input, output, session, sqlite_path, passphrase) {
       bb_x_axis(tick = list(width = 10000)) %>%
       bb_labs(
         # title = "Number of connection by user",
-        y = lan$get("Total number of connection")
+        y = lan()$get("Total number of connection")
       ) %>%
       bb_zoom(
         enabled = list(type = "drag"),
@@ -221,7 +222,7 @@ logs <- function(input, output, session, sqlite_path, passphrase) {
       bb_legend(show = FALSE) %>%
       bb_labs(
         # title = "Number of connection by user",
-        y = lan$get("Total number of connection")
+        y = lan()$get("Total number of connection")
       ) %>%
       # bb_bar(width = list(ratio = 1, max = 30)) %>%
       bb_zoom(
@@ -267,7 +268,14 @@ logs <- function(input, output, session, sqlite_path, passphrase) {
       on.exit(dbDisconnect(conn))
       logs <- read_db_decrypt(conn = conn, name = "logs", passphrase = passphrase)
       logs$token <- NULL
-      write.table(logs, con, sep = ";", row.names = FALSE)
+      users <- read_db_decrypt(conn = conn, name = "credentials", passphrase = passphrase)
+      users$password <- NULL
+      users$is_hashed_password <- NULL
+      if(all(is.na(users$start))) users$start <- NULL
+      if(all(is.na(users$expire))) users$expire <- NULL
+      logs <- merge(logs, users, by = "user", all.x = TRUE, sort = FALSE)
+      logs <- logs[order(logs$server_connected, decreasing = TRUE), ]
+      write.table(logs, con, sep = ";", row.names = FALSE, na = '', fileEncoding = fileEncoding)
     }
   )
 }

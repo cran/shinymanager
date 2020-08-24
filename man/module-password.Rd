@@ -6,7 +6,7 @@
 \alias{pwd_server}
 \title{New password module}
 \usage{
-pwd_ui(id, tag_img = NULL, status = "primary")
+pwd_ui(id, tag_img = NULL, status = "primary", lan = NULL)
 
 pwd_server(
   input,
@@ -15,7 +15,8 @@ pwd_server(
   user,
   update_pwd,
   validate_pwd = NULL,
-  use_token = FALSE
+  use_token = FALSE,
+  lan = NULL
 )
 }
 \arguments{
@@ -26,6 +27,8 @@ pwd_server(
 \item{status}{Bootstrap status to use for the panel and the button.
 Valid status are: \code{"default"}, \code{"primary"}, \code{"success"},
 \code{"warning"}, \code{"danger"}.}
+
+\item{lan}{An langauge object. Should not be used directly.}
 
 \item{input, output, session}{Standard Shiny server arguments.}
 

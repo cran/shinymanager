@@ -12,10 +12,19 @@ auth_ui(
   tags_top = NULL,
   tags_bottom = NULL,
   background = NULL,
+  choose_language = NULL,
+  lan = NULL,
   ...
 )
 
-auth_server(input, output, session, check_credentials, use_token = FALSE)
+auth_server(
+  input,
+  output,
+  session,
+  check_credentials,
+  use_token = FALSE,
+  lan = NULL
+)
 }
 \arguments{
 \item{id}{Module's id.}
@@ -29,6 +38,11 @@ Valid status are: \code{"default"}, \code{"primary"}, \code{"success"},
 \item{tags_bottom}{A \code{tags (div, img, ...)} to be displayed on bottom of the authentication module.}
 
 \item{background}{A optionnal \code{css} for authentication background. See example.}
+
+\item{choose_language}{\code{logical/character}. Add language selection on top ? TRUE for all supported languages
+or a vector of possibilities like \code{c("fr", "en")}. If enabled, \code{input$shinymanager_language} is created}
+
+\item{lan}{An langauge object. Should not be used directly.}
 
 \item{...}{: Used for old version compatibility.}
 
@@ -59,9 +73,20 @@ if (interactive()) {
   library(shinymanager)
   
   # data.frame with credentials info
+  # credentials <- data.frame(
+  #   user = c("fanny", "victor"),
+  #   password = c("azerty", "12345"),
+  #   comment = c("alsace", "auvergne"),
+  #   stringsAsFactors = FALSE
+  # )
+  
+  # you can hash the password using scrypt
+  # and adding a column is_hashed_password
+  # data.frame with credentials info
   credentials <- data.frame(
     user = c("fanny", "victor"),
-    password = c("azerty", "12345"),
+    password = c(scrypt::hashPassword("azerty"), scrypt::hashPassword("12345")),
+    is_hashed_password = TRUE,
     comment = c("alsace", "auvergne"),
     stringsAsFactors = FALSE
   )
@@ -91,9 +116,11 @@ if (interactive()) {
         )
       ),
       # change auth ui background ?
+      # https://developer.mozilla.org/fr/docs/Web/CSS/background
       background  = "linear-gradient(rgba(0, 0, 255, 0.5),
                        rgba(255, 255, 0, 0.5)),
-                       url('https://www.r-project.org/logo/Rlogo.png');"
+                       url('https://www.r-project.org/logo/Rlogo.png');", 
+      choose_language = TRUE
     ),
     
     # result of authentication

@@ -3,11 +3,13 @@
 #' @importFrom DT DTOutput
 #' @importFrom htmltools tags singleton tagList
 #' @importFrom shiny NS fluidRow column actionButton icon
-admin_ui <- function(id) {
+admin_ui <- function(id, lan = NULL) {
 
   ns <- NS(id)
 
-  lan <- use_language()
+  if(is.null(lan)){
+    lan <- use_language()
+  }
 
   tagList(
     singleton(tags$head(
@@ -17,7 +19,7 @@ admin_ui <- function(id) {
     )),
     fluidRow(
       column(
-        width = 8, offset = 2,
+        width = 10, offset = 1,
         # tags$h2(lan$get("Administrator mode")),
         # tags$br(), tags$br(),
 
@@ -33,7 +35,7 @@ admin_ui <- function(id) {
         ),
         tags$br(), tags$br(), tags$br(),
         DTOutput(outputId = ns("table_users")),
-
+        
         tags$br(),
 
         actionButton(
@@ -94,25 +96,26 @@ admin_ui <- function(id) {
 }
 
 #' @importFrom DT renderDT datatable JS
-#' @importFrom shiny reactive observeEvent isolate showModal modalDialog
+#' @importFrom shiny reactive observeEvent isolate showModal modalDialog reactiveFileReader
 #'  removeUI insertUI reactiveValues showNotification callModule req updateCheckboxInput
 #' @importFrom DBI dbConnect
 #' @importFrom RSQLite SQLite
-admin <- function(input, output, session, sqlite_path, passphrase, inputs_list = NULL) {
+admin <- function(input, output, session, sqlite_path, passphrase, lan,
+                  inputs_list = NULL) {
 
   ns <- session$ns
   jns <- function(x) {
     paste0("#", ns(x))
   }
-
-  lan <- use_language()
-
+  
   token_start <- isolate(getToken(session = session))
 
   update_read_db <- reactiveValues(x = NULL)
 
   # read users table from database
-  users <- reactive({
+  users <- reactiveVal(NULL)
+  
+  observe({
     unbindDT(ns("table_users"))
     update_read_db$x
     db <- try({
@@ -122,14 +125,22 @@ admin <- function(input, output, session, sqlite_path, passphrase, inputs_list =
     }, silent = TRUE)
     if (inherits(db, "try-error")) {
       showModal(modalDialog("An error occurs when connecting or reading the database."))
-      return(NULL)
+      users(NULL)
     } else {
-      return(db)
+      users(db)
     }
   })
 
+  # prevent bug having multiple admin session
+  users_update <- reactiveFileReader(1000, session, sqlite_path, filelReaderDB,  passphrase = passphrase, name = "credentials")
+  observe({
+    if(!is.null(users_update())) users(users_update())
+  })
+  
   # read password management table from database
-  pwds <- reactive({
+  pwds <- reactiveVal(NULL)
+  
+  observe({
     unbindDT(ns("table_pwds"))
     update_read_db$x
     db <- try({
@@ -139,10 +150,16 @@ admin <- function(input, output, session, sqlite_path, passphrase, inputs_list =
     }, silent = TRUE)
     if (inherits(db, "try-error")) {
       showModal(modalDialog("An error occurs when connecting or reading the database."))
-      return(NULL)
+      pwds(NULL)
     } else {
-      return(db)
+      pwds(db)
     }
+  })
+
+  # prevent bug having multiple admin session
+  pwds_update <- reactiveFileReader(1000, session, sqlite_path, filelReaderDB,  passphrase = passphrase, name = "pwd_mngt")
+  observe({
+    if(!is.null(pwds_update())) pwds(pwds_update())
   })
 
 
@@ -150,9 +167,9 @@ admin <- function(input, output, session, sqlite_path, passphrase, inputs_list =
   output$table_users <- renderDT({
     req(users())
     users <- users()
-    users <- users[, setdiff(names(users), "password"), drop = FALSE]
-    users$Edit <- input_btns(ns("edit_user"), users$user, "Edit user", icon("pencil-square-o"), status = "primary")
-    users$Remove <- input_btns(ns("remove_user"), users$user, "Delete user", icon("trash-o"), status = "danger")
+    users <- users[, setdiff(names(users), c("password", "is_hashed_password")), drop = FALSE]
+    users$Edit <- input_btns(ns("edit_user"), users$user, "Edit user", icon("pencil-square-o"), status = "primary", lan = lan())
+    users$Remove <- input_btns(ns("remove_user"), users$user, "Delete user", icon("trash-o"), status = "danger", lan = lan())
     users$Select <- input_checkbox_ui(ns("remove_mult_users"), users$user)
     datatable(
       data = users,
@@ -160,8 +177,9 @@ admin <- function(input, output, session, sqlite_path, passphrase, inputs_list =
       rownames = FALSE,
       escape = FALSE,
       selection = "none",
+      # extensions = 'FixedColumns', # bug using FixedColumns on checkbox + update table...
       options = list(
-        language = lan$get_DT(),
+        language = lan()$get_DT(),
         drawCallback = JS("function() {Shiny.bindAll(this.api().table().node());}"),
         # initComplete = JS(
         # "function(settings, json) {",
@@ -171,6 +189,7 @@ admin <- function(input, output, session, sqlite_path, passphrase, inputs_list =
         columnDefs = list(
           list(width = "50px", targets = (ncol(users)-3):(ncol(users)-1))
         )
+        # fixedColumns = list(leftColumns = 1)
       )
     )
   }, server = FALSE)
@@ -190,8 +209,8 @@ admin <- function(input, output, session, sqlite_path, passphrase, inputs_list =
   output$table_pwds <- renderDT({
     req(pwds())
     pwds <- pwds()
-    pwds$`Change password` <- input_btns(ns("change_pwd"), pwds$user, "Ask to change password", icon("key"), status = "primary")
-    pwds$`Reset password` <- input_btns(ns("reset_pwd"), pwds$user, "Reset password", icon("undo"), status = "warning")
+    pwds$`Change password` <- input_btns(ns("change_pwd"), pwds$user, "Ask to change password", icon("key"), status = "primary", lan = lan())
+    pwds$`Reset password` <- input_btns(ns("reset_pwd"), pwds$user, "Reset password", icon("undo"), status = "warning", lan = lan())
     pwds$Select <- input_checkbox_ui(ns("change_mult_pwds"), pwds$user)
     datatable(
       data = pwds,
@@ -200,7 +219,7 @@ admin <- function(input, output, session, sqlite_path, passphrase, inputs_list =
       escape = FALSE,
       selection = "none",
       options = list(
-        language = lan$get_DT(),
+        language = lan()$get_DT(),
         drawCallback = JS("function() {Shiny.bindAll(this.api().table().node());}"),
         # initComplete = JS(
         #   "function(settings, json) {",
@@ -236,7 +255,7 @@ admin <- function(input, output, session, sqlite_path, passphrase, inputs_list =
   })
 
   observeEvent(input$remove_selected_users, {
-    remove_modal(ns("delete_selected_users"), r_selected_users())
+    remove_modal(ns("delete_selected_users"), r_selected_users(), lan())
   })
 
   observeEvent(input$delete_selected_users, {
@@ -265,15 +284,15 @@ admin <- function(input, output, session, sqlite_path, passphrase, inputs_list =
   })
 
   observeEvent(input$change_selected_pwds, {
-    change_pwd_modal(ns("changed_password_users"), r_selected_pwds())
+    change_pwd_modal(ns("changed_password_users"), r_selected_pwds(), lan())
   })
 
   observeEvent(input$changed_password_users, {
     res_chg <- try(force_chg_pwd(r_selected_pwds()), silent = TRUE)
     if (inherits(res_chg, "try-error")) {
-      showNotification(ui = lan$get("Failed to update the database"), type = "error")
+      showNotification(ui = lan()$get("Failed to update the database"), type = "error")
     } else {
-      showNotification(ui = lan$get("Change saved!"), type = "message")
+      showNotification(ui = lan()$get("Change saved!"), type = "message")
       update_read_db$x <- Sys.time()
     }
   })
@@ -286,13 +305,13 @@ admin <- function(input, output, session, sqlite_path, passphrase, inputs_list =
     users <- users()
     showModal(modalDialog(
       title = "Edit user",
-      edit_user_ui(ns("edit_user"), credentials = users, username = input$edit_user, inputs_list = inputs_list),
+      edit_user_ui(ns("edit_user"), credentials = users, username = input$edit_user, inputs_list = inputs_list, lan = lan()),
       tags$div(id = ns("placeholder-edituser-exist")),
       footer = tagList(
-        modalButton(lan$get("Cancel")),
+        modalButton(lan()$get("Cancel")),
         actionButton(
           inputId = ns("edited_user"),
-          label = lan$get("Confirm change"),
+          label = lan()$get("Confirm change"),
           class = "btn-primary",
           `data-dismiss` = "modal"
         )
@@ -315,7 +334,7 @@ admin <- function(input, output, session, sqlite_path, passphrase, inputs_list =
           id = ns("alert-edituser-exist"),
           class = "alert alert-warning",
           icon("exclamation-triangle"),
-          lan$get("User already exist!")
+          lan()$get("User already exist!")
         ),
         immediate = TRUE
       )
@@ -339,9 +358,9 @@ admin <- function(input, output, session, sqlite_path, passphrase, inputs_list =
       write_db_encrypt(conn = conn, value = users, name = "credentials", passphrase = passphrase)
     }, silent = FALSE)
     if (inherits(res_edit, "try-error")) {
-      showNotification(ui = lan$get("Fail to update user"), type = "error")
+      showNotification(ui = lan()$get("Fail to update user"), type = "error")
     } else {
-      showNotification(ui = lan$get("User successfully updated"), type = "message")
+      showNotification(ui = lan()$get("User successfully updated"), type = "message")
       update_read_db$x <- Sys.time()
     }
   })
@@ -351,14 +370,14 @@ admin <- function(input, output, session, sqlite_path, passphrase, inputs_list =
   observeEvent(input$add_user, {
     users <- users()
     showModal(modalDialog(
-      title = "Add user",
-      edit_user_ui(ns("add_user"), users, NULL, inputs_list = inputs_list),
+      title = lan()$get("Add a user"),
+      edit_user_ui(ns("add_user"), users, NULL, inputs_list = inputs_list, lan = lan()),
       tags$div(id = ns("placeholder-user-exist")),
       footer = tagList(
-        modalButton(lan$get("Cancel")),
+        modalButton(lan()$get("Cancel")),
         actionButton(
           inputId = ns("added_user"),
-          label = lan$get("Confirm new user"),
+          label = lan()$get("Confirm new user"),
           class = "btn-primary",
           `data-dismiss` = "modal"
         )
@@ -381,7 +400,7 @@ admin <- function(input, output, session, sqlite_path, passphrase, inputs_list =
           id = ns("alert-user-exist"),
           class = "alert alert-warning",
           icon("exclamation-triangle"),
-          lan$get("User already exist!")
+          lan()$get("User already exist!")
         ),
         immediate = TRUE
       )
@@ -409,7 +428,13 @@ admin <- function(input, output, session, sqlite_path, passphrase, inputs_list =
     # password <- generate_pwd()
     # newuser$password <- password
     res_add <- try({
-      users <- rbind(users, as.data.frame(newuser))
+      newuser <- as.data.frame(newuser)
+      newuser$is_hashed_password <- FALSE
+      if(!"is_hashed_password" %in% colnames(users)){
+        users$is_hashed_password <- FALSE
+      }
+      newuser <- newuser[, colnames(users)]
+      users <- rbind(users, newuser)
       write_db_encrypt(conn = conn, value = users, name = "credentials", passphrase = passphrase)
       resetpwd <- read_db_decrypt(conn = conn, name = "pwd_mngt", passphrase = passphrase)
       resetpwd <- rbind(resetpwd, data.frame(
@@ -422,14 +447,14 @@ admin <- function(input, output, session, sqlite_path, passphrase, inputs_list =
       write_db_encrypt(conn = conn, value = resetpwd, name = "pwd_mngt", passphrase = passphrase)
     }, silent = FALSE)
     if (inherits(res_add, "try-error")) {
-      showNotification(ui = lan$get("Failed to update user"), type = "error")
+      showNotification(ui = lan()$get("Failed to update user"), type = "error")
     } else {
       showModal(modalDialog(
         tags$p(HTML(
-          sprintf(lan$get("New user %s succesfully created!"), tags$b(newuser$user))
+          sprintf(lan()$get("New user %s succesfully created!"), tags$b(newuser$user))
         )),
-        tags$p(lan$get("Password:"), tags$b(newuser$password)),
-        footer = modalButton(lan$get("Dismiss"))
+        tags$p(lan()$get("Password:"), tags$b(newuser$password)),
+        footer = modalButton(lan()$get("Dismiss"))
       ))
       update_read_db$x <- Sys.time()
     }
@@ -438,16 +463,16 @@ admin <- function(input, output, session, sqlite_path, passphrase, inputs_list =
 
   # launch modal to force a user to change password
   observeEvent(input$change_pwd, {
-    change_pwd_modal(ns("changed_password"), input$change_pwd)
+    change_pwd_modal(ns("changed_password"), input$change_pwd, lan())
   })
 
   # store in database that the user must change password on next connection
   observeEvent(input$changed_password, {
     res_chg <- try(force_chg_pwd(input$change_pwd), silent = TRUE)
     if (inherits(res_chg, "try-error")) {
-      showNotification(ui = lan$get("Failed to update the database"), type = "error")
+      showNotification(ui = lan()$get("Failed to update the database"), type = "error")
     } else {
-      showNotification(ui = lan$get("Change saved!"), type = "message")
+      showNotification(ui = lan()$get("Change saved!"), type = "message")
       update_read_db$x <- Sys.time()
     }
   })
@@ -455,7 +480,7 @@ admin <- function(input, output, session, sqlite_path, passphrase, inputs_list =
 
   # launch modal to reset password
   observeEvent(input$reset_pwd, {
-    reset_pwd_modal(ns("reseted_password"), input$reset_pwd)
+    reset_pwd_modal(ns("reseted_password"), input$reset_pwd, lan())
   })
   observeEvent(input$reseted_password, {
     password <- generate_pwd()
@@ -464,15 +489,20 @@ admin <- function(input, output, session, sqlite_path, passphrase, inputs_list =
       users$password <- as.character(users$password)
     }
     users$password[users$user %in% input$reset_pwd] <- password
+    if(!"is_hashed_password" %in% colnames(users)){
+      users$is_hashed_password <- FALSE
+    } else {
+      users$is_hashed_password[users$user %in% input$reset_pwd] <- FALSE
+    }
     write_db_encrypt(conn = sqlite_path, value = users, name = "credentials", passphrase = passphrase)
     res_chg <- try(force_chg_pwd(input$reset_pwd), silent = TRUE)
     if (inherits(res_chg, "try-error")) {
-      showNotification(ui = lan$get("Failed to update user"), type = "error")
+      showNotification(ui = lan()$get("Failed to update user"), type = "error")
     } else {
       showModal(modalDialog(
-        tags$p(lan$get("Password succesfully reset!")),
-        tags$p(lan$get("Temporary password:"), tags$b(password)),
-        footer = modalButton(lan$get("Dismiss"))
+        tags$p(lan()$get("Password succesfully reset!")),
+        tags$p(lan()$get("Temporary password:"), tags$b(password)),
+        footer = modalButton(lan()$get("Dismiss"))
       ))
       update_read_db$x <- Sys.time()
     }
@@ -484,12 +514,12 @@ admin <- function(input, output, session, sqlite_path, passphrase, inputs_list =
     current_user <- .tok$get_user(token_start)
     if (identical(current_user, input$remove_user)) {
       showModal(modalDialog(
-        lan$get("You can't remove yourself!"),
-        footer = modalButton(lan$get("Cancel")),
+        lan()$get("You can't remove yourself!"),
+        footer = modalButton(lan()$get("Cancel")),
         easyClose = TRUE
       ))
     } else {
-      remove_modal(ns("delete_user"), input$remove_user)
+      remove_modal(ns("delete_user"), input$remove_user, lan())
     }
   })
 
@@ -520,8 +550,7 @@ admin <- function(input, output, session, sqlite_path, passphrase, inputs_list =
 
 #' @importFrom htmltools HTML tags tagList
 #' @importFrom shiny showModal modalDialog modalButton actionButton
-remove_modal <- function(inputId, user) {
-  lan <- use_language()
+remove_modal <- function(inputId, user, lan) {
   showModal(modalDialog(
     tags$p(HTML(sprintf(
       lan$get("Are you sure to remove user(s): %s from the database ?"), tags$b(paste(user, collapse = ", "))
@@ -539,10 +568,9 @@ remove_modal <- function(inputId, user) {
   ))
 }
 
-change_pwd_modal <- function(inputId, user) {
-  lan <- use_language()
+change_pwd_modal <- function(inputId, user, lan) {
   showModal(modalDialog(
-    title = "Change password",
+    title = lan$get("Ask to change password"),
     tags$p(HTML(
       sprintf(lan$get("Ask %s to change password on next connection?"), tags$b(paste(user, collapse = ", ")))
     )),
@@ -558,10 +586,9 @@ change_pwd_modal <- function(inputId, user) {
   ))
 }
 
-reset_pwd_modal <- function(inputId, user) {
-  lan <- use_language()
+reset_pwd_modal <- function(inputId, user, lan) {
   showModal(modalDialog(
-    title = "Reset password",
+    title = lan$get("Reset password"),
     tags$p(HTML(
       sprintf(lan$get("Reset password for %s?"), tags$b(paste(user, collapse = ", ")))
     )),

@@ -2,11 +2,13 @@
 #' @importFrom shiny NS dateInput checkboxInput textInput
 #' @importFrom htmltools tagList
 #' @importFrom R.utils capitalize
-edit_user_ui <- function(id, credentials, username = NULL, inputs_list = NULL) {
+edit_user_ui <- function(id, credentials, username = NULL, inputs_list = NULL, lan = NULL) {
 
   ns <- NS(id)
 
-  lan <- use_language()
+  if(is.null(lan)){
+    lan <- use_language()
+  }
 
   if (!is.null(username) && username %in% credentials$user) {
     data_user <- credentials[credentials$user == username, ]
@@ -32,6 +34,8 @@ edit_user_ui <- function(id, credentials, username = NULL, inputs_list = NULL) {
         }
         dateInput(inputId = ns(x), label = R.utils::capitalize(x), value = value, width = "100%")
       } else if (identical(x, "password")) {
+        NULL
+      } else if (identical(x, "is_hashed_password")) {
         NULL
       } else if (identical(x, "admin")) {
         checkboxInput(inputId = ns(x), label = R.utils::capitalize(x), value = isTRUE(as.logical(data_user[[x]])))
@@ -112,6 +116,7 @@ edit_user <- function(input, output, session) {
 
 #' @importFrom utils modifyList
 update_user <- function(df, value, username) {
+  value <- value[intersect(names(value), names(df))]
   users_order <- factor(df$user, levels=unique(df$user))
   df <- split(df, f = users_order)
   user <- as.list(df[[username]])
