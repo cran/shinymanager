@@ -40,9 +40,9 @@ Valid status are: \code{"default"}, \code{"primary"}, \code{"success"},
 \item{background}{A optionnal \code{css} for authentication background. See example.}
 
 \item{choose_language}{\code{logical/character}. Add language selection on top ? TRUE for all supported languages
-or a vector of possibilities like \code{c("fr", "en")}. If enabled, \code{input$shinymanager_language} is created}
+or a vector of possibilities like \code{c("en", "fr", "pt-BR", "es", "de", "pl")}. If enabled, \code{input$shinymanager_language} is created}
 
-\item{lan}{An langauge object. Should not be used directly.}
+\item{lan}{A language object. See  \code{\link{use_language}}}
 
 \item{...}{: Used for old version compatibility.}
 
@@ -50,8 +50,13 @@ or a vector of possibilities like \code{c("fr", "en")}. If enabled, \code{input$
 
 \item{check_credentials}{Function with two arguments (\code{user},
 the username provided by the user and \code{password}, his/her password).
-Must return \code{TRUE} or \code{FALSE}.
-To use additionnals arguments, set them with \code{purrr::partial} (see examples).}
+Must return a \code{list} with at least 4 slots :
+\itemize{
+ \item \strong{result} : logical, result of authentication.
+ \item \strong{expired} : logical, is user has expired ? Always \code{FALSE} if \code{db} doesn't have a \code{expire} column.
+ \item \strong{authorized} : logical, is user can access to his app ? Always \code{TRUE} if \code{db} doesn't have a \code{applications} column.
+ \item \strong{user_info} : the line in \code{db} corresponding to the user.
+}}
 
 \item{use_token}{Add a token in the URL to check authentication. Should not be used directly.}
 }
@@ -120,7 +125,8 @@ if (interactive()) {
       background  = "linear-gradient(rgba(0, 0, 255, 0.5),
                        rgba(255, 255, 0, 0.5)),
                        url('https://www.r-project.org/logo/Rlogo.png');", 
-      choose_language = TRUE
+      # set language ?
+      lan = use_language("fr")
     ),
     
     # result of authentication

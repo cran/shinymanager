@@ -1,3 +1,18 @@
+# shinymanager 1.0.400
+
+* (#84) : new FAB button with a position argument
+* (#81) : keep request query string. Thanks @erikor 
+* (#24) : secure_server() : added keep_token arg 
+* (#54) add spanish. Thanks @EAMI91 
+* (#98) add german. Thanks @indubio
+* (#106) add polish. Thanks @StatisMike
+* (#39) : fix use shiny bookmarking
+* Admin mode: new edit multiple users
+* Add full language label using `choose_language`
+* (#66) fix ``quanteda`` bad interaction 
+* (#71) fix logs count for admin user
+* (#26) : restrict number of users
+
 # shinymanager 1.0.300
 
 * Add ``autofocus`` on username input.

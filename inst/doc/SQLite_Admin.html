@@ -14,39 +14,40 @@
 
 <title>shinymanager : SQLite Admin</title>
 
-<script>// Hide empty <a> tag within highlighted CodeBlock for screen reader accessibility (see https://github.com/jgm/pandoc/issues/6352#issuecomment-626106786) -->
-// v0.0.1
-// Written by JooYoung Seo (jooyoung@psu.edu) and Atsushi Yasumoto on June 1st, 2020.
+<script src="data:application/javascript;base64,Ly8gUGFuZG9jIDIuOSBhZGRzIGF0dHJpYnV0ZXMgb24gYm90aCBoZWFkZXIgYW5kIGRpdi4gV2UgcmVtb3ZlIHRoZSBmb3JtZXIgKHRvCi8vIGJlIGNvbXBhdGlibGUgd2l0aCB0aGUgYmVoYXZpb3Igb2YgUGFuZG9jIDwgMi44KS4KZG9jdW1lbnQuYWRkRXZlbnRMaXN0ZW5lcignRE9NQ29udGVudExvYWRlZCcsIGZ1bmN0aW9uKGUpIHsKICB2YXIgaHMgPSBkb2N1bWVudC5xdWVyeVNlbGVjdG9yQWxsKCJkaXYuc2VjdGlvbltjbGFzcyo9J2xldmVsJ10gPiA6Zmlyc3QtY2hpbGQiKTsKICB2YXIgaSwgaCwgYTsKICBmb3IgKGkgPSAwOyBpIDwgaHMubGVuZ3RoOyBpKyspIHsKICAgIGggPSBoc1tpXTsKICAgIGlmICghL15oWzEtNl0kL2kudGVzdChoLnRhZ05hbWUpKSBjb250aW51ZTsgIC8vIGl0IHNob3VsZCBiZSBhIGhlYWRlciBoMS1oNgogICAgYSA9IGguYXR0cmlidXRlczsKICAgIHdoaWxlIChhLmxlbmd0aCA+IDApIGgucmVtb3ZlQXR0cmlidXRlKGFbMF0ubmFtZSk7CiAgfQp9KTsK"></script>
 
-document.addEventListener('DOMContentLoaded', function() {
-  const codeList = document.getElementsByClassName("sourceCode");
-  for (var i = 0; i < codeList.length; i++) {
-    var linkList = codeList[i].getElementsByTagName('a');
-    for (var j = 0; j < linkList.length; j++) {
-      if (linkList[j].innerHTML === "") {
-        linkList[j].setAttribute('aria-hidden', 'true');
-      }
-    }
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+
+<style type="text/css">
+  code {
+    white-space: pre;
   }
-});
-</script>
-
-
-<style type="text/css">code{white-space: pre;}</style>
+  .sourceCode {
+    overflow: visible;
+  }
+</style>
 <style type="text/css" data-origin="pandoc">
-code.sourceCode > span { display: inline-block; line-height: 1.25; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-code.sourceCode > span:empty { height: 1.2em; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
 .sourceCode { overflow: visible; }
-code.sourceCode { white-space: pre; position: relative; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
 div.sourceCode { margin: 1em 0; }
 pre.sourceCode { margin: 0; }
 @media screen {
 div.sourceCode { overflow: auto; }
 }
 @media print {
-code.sourceCode { white-space: pre-wrap; }
-code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
 }
 pre.numberSource code
   { counter-reset: source-line 0; }
@@ -66,7 +67,7 @@ pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-le
 div.sourceCode
   {   }
 @media screen {
-code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
 code span.al { color: #ff0000; font-weight: bold; } /* Alert */
 code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
@@ -123,187 +124,8 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 
 
-<style type="text/css">body {
-background-color: #fff;
-margin: 1em auto;
-max-width: 700px;
-overflow: visible;
-padding-left: 2em;
-padding-right: 2em;
-font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
-font-size: 14px;
-line-height: 1.35;
-}
-#TOC {
-clear: both;
-margin: 0 0 10px 10px;
-padding: 4px;
-width: 400px;
-border: 1px solid #CCCCCC;
-border-radius: 5px;
-background-color: #f6f6f6;
-font-size: 13px;
-line-height: 1.3;
-}
-#TOC .toctitle {
-font-weight: bold;
-font-size: 15px;
-margin-left: 5px;
-}
-#TOC ul {
-padding-left: 40px;
-margin-left: -1.5em;
-margin-top: 5px;
-margin-bottom: 5px;
-}
-#TOC ul ul {
-margin-left: -2em;
-}
-#TOC li {
-line-height: 16px;
-}
-table {
-margin: 1em auto;
-border-width: 1px;
-border-color: #DDDDDD;
-border-style: outset;
-border-collapse: collapse;
-}
-table th {
-border-width: 2px;
-padding: 5px;
-border-style: inset;
-}
-table td {
-border-width: 1px;
-border-style: inset;
-line-height: 18px;
-padding: 5px 5px;
-}
-table, table th, table td {
-border-left-style: none;
-border-right-style: none;
-}
-table thead, table tr.even {
-background-color: #f7f7f7;
-}
-p {
-margin: 0.5em 0;
-}
-blockquote {
-background-color: #f6f6f6;
-padding: 0.25em 0.75em;
-}
-hr {
-border-style: solid;
-border: none;
-border-top: 1px solid #777;
-margin: 28px 0;
-}
-dl {
-margin-left: 0;
-}
-dl dd {
-margin-bottom: 13px;
-margin-left: 13px;
-}
-dl dt {
-font-weight: bold;
-}
-ul {
-margin-top: 0;
-}
-ul li {
-list-style: circle outside;
-}
-ul ul {
-margin-bottom: 0;
-}
-pre, code {
-background-color: #f7f7f7;
-border-radius: 3px;
-color: #333;
-white-space: pre-wrap; 
-}
-pre {
-border-radius: 3px;
-margin: 5px 0px 10px 0px;
-padding: 10px;
-}
-pre:not([class]) {
-background-color: #f7f7f7;
-}
-code {
-font-family: Consolas, Monaco, 'Courier New', monospace;
-font-size: 85%;
-}
-p > code, li > code {
-padding: 2px 0px;
-}
-div.figure {
-text-align: center;
-}
-img {
-background-color: #FFFFFF;
-padding: 2px;
-border: 1px solid #DDDDDD;
-border-radius: 3px;
-border: 1px solid #CCCCCC;
-margin: 0 5px;
-}
-h1 {
-margin-top: 0;
-font-size: 35px;
-line-height: 40px;
-}
-h2 {
-border-bottom: 4px solid #f7f7f7;
-padding-top: 10px;
-padding-bottom: 2px;
-font-size: 145%;
-}
-h3 {
-border-bottom: 2px solid #f7f7f7;
-padding-top: 10px;
-font-size: 120%;
-}
-h4 {
-border-bottom: 1px solid #f7f7f7;
-margin-left: 8px;
-font-size: 105%;
-}
-h5, h6 {
-border-bottom: 1px solid #ccc;
-font-size: 105%;
-}
-a {
-color: #0033dd;
-text-decoration: none;
-}
-a:hover {
-color: #6666ff; }
-a:visited {
-color: #800080; }
-a:visited:hover {
-color: #BB00BB; }
-a[href^="http:"] {
-text-decoration: underline; }
-a[href^="https:"] {
-text-decoration: underline; }
 
-code > span.kw { color: #555; font-weight: bold; } 
-code > span.dt { color: #902000; } 
-code > span.dv { color: #40a070; } 
-code > span.bn { color: #d14; } 
-code > span.fl { color: #d14; } 
-code > span.ch { color: #d14; } 
-code > span.st { color: #d14; } 
-code > span.co { color: #888888; font-style: italic; } 
-code > span.ot { color: #007020; } 
-code > span.al { color: #ff0000; font-weight: bold; } 
-code > span.fu { color: #900; font-weight: bold; } 
-code > span.er { color: #a61717; background-color: #e3d2d2; } 
-</style>
+<link rel="stylesheet" href="data:text/css,body%20%7B%0Abackground%2Dcolor%3A%20%23fff%3B%0Amargin%3A%201em%20auto%3B%0Amax%2Dwidth%3A%20700px%3B%0Aoverflow%3A%20visible%3B%0Apadding%2Dleft%3A%202em%3B%0Apadding%2Dright%3A%202em%3B%0Afont%2Dfamily%3A%20%22Open%20Sans%22%2C%20%22Helvetica%20Neue%22%2C%20Helvetica%2C%20Arial%2C%20sans%2Dserif%3B%0Afont%2Dsize%3A%2014px%3B%0Aline%2Dheight%3A%201%2E35%3B%0A%7D%0A%23TOC%20%7B%0Aclear%3A%20both%3B%0Amargin%3A%200%200%2010px%2010px%3B%0Apadding%3A%204px%3B%0Awidth%3A%20400px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Aborder%2Dradius%3A%205px%3B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Afont%2Dsize%3A%2013px%3B%0Aline%2Dheight%3A%201%2E3%3B%0A%7D%0A%23TOC%20%2Etoctitle%20%7B%0Afont%2Dweight%3A%20bold%3B%0Afont%2Dsize%3A%2015px%3B%0Amargin%2Dleft%3A%205px%3B%0A%7D%0A%23TOC%20ul%20%7B%0Apadding%2Dleft%3A%2040px%3B%0Amargin%2Dleft%3A%20%2D1%2E5em%3B%0Amargin%2Dtop%3A%205px%3B%0Amargin%2Dbottom%3A%205px%3B%0A%7D%0A%23TOC%20ul%20ul%20%7B%0Amargin%2Dleft%3A%20%2D2em%3B%0A%7D%0A%23TOC%20li%20%7B%0Aline%2Dheight%3A%2016px%3B%0A%7D%0Atable%20%7B%0Amargin%3A%201em%20auto%3B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dcolor%3A%20%23DDDDDD%3B%0Aborder%2Dstyle%3A%20outset%3B%0Aborder%2Dcollapse%3A%20collapse%3B%0A%7D%0Atable%20th%20%7B%0Aborder%2Dwidth%3A%202px%3B%0Apadding%3A%205px%3B%0Aborder%2Dstyle%3A%20inset%3B%0A%7D%0Atable%20td%20%7B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dstyle%3A%20inset%3B%0Aline%2Dheight%3A%2018px%3B%0Apadding%3A%205px%205px%3B%0A%7D%0Atable%2C%20table%20th%2C%20table%20td%20%7B%0Aborder%2Dleft%2Dstyle%3A%20none%3B%0Aborder%2Dright%2Dstyle%3A%20none%3B%0A%7D%0Atable%20thead%2C%20table%20tr%2Eeven%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Ap%20%7B%0Amargin%3A%200%2E5em%200%3B%0A%7D%0Ablockquote%20%7B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Apadding%3A%200%2E25em%200%2E75em%3B%0A%7D%0Ahr%20%7B%0Aborder%2Dstyle%3A%20solid%3B%0Aborder%3A%20none%3B%0Aborder%2Dtop%3A%201px%20solid%20%23777%3B%0Amargin%3A%2028px%200%3B%0A%7D%0Adl%20%7B%0Amargin%2Dleft%3A%200%3B%0A%7D%0Adl%20dd%20%7B%0Amargin%2Dbottom%3A%2013px%3B%0Amargin%2Dleft%3A%2013px%3B%0A%7D%0Adl%20dt%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Aul%20%7B%0Amargin%2Dtop%3A%200%3B%0A%7D%0Aul%20li%20%7B%0Alist%2Dstyle%3A%20circle%20outside%3B%0A%7D%0Aul%20ul%20%7B%0Amargin%2Dbottom%3A%200%3B%0A%7D%0Apre%2C%20code%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0Aborder%2Dradius%3A%203px%3B%0Acolor%3A%20%23333%3B%0Awhite%2Dspace%3A%20pre%2Dwrap%3B%20%0A%7D%0Apre%20%7B%0Aborder%2Dradius%3A%203px%3B%0Amargin%3A%205px%200px%2010px%200px%3B%0Apadding%3A%2010px%3B%0A%7D%0Apre%3Anot%28%5Bclass%5D%29%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Acode%20%7B%0Afont%2Dfamily%3A%20Consolas%2C%20Monaco%2C%20%27Courier%20New%27%2C%20monospace%3B%0Afont%2Dsize%3A%2085%25%3B%0A%7D%0Ap%20%3E%20code%2C%20li%20%3E%20code%20%7B%0Apadding%3A%202px%200px%3B%0A%7D%0Adiv%2Efigure%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0Aimg%20%7B%0Abackground%2Dcolor%3A%20%23FFFFFF%3B%0Apadding%3A%202px%3B%0Aborder%3A%201px%20solid%20%23DDDDDD%3B%0Aborder%2Dradius%3A%203px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Amargin%3A%200%205px%3B%0A%7D%0Ah1%20%7B%0Amargin%2Dtop%3A%200%3B%0Afont%2Dsize%3A%2035px%3B%0Aline%2Dheight%3A%2040px%3B%0A%7D%0Ah2%20%7B%0Aborder%2Dbottom%3A%204px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Apadding%2Dbottom%3A%202px%3B%0Afont%2Dsize%3A%20145%25%3B%0A%7D%0Ah3%20%7B%0Aborder%2Dbottom%3A%202px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Afont%2Dsize%3A%20120%25%3B%0A%7D%0Ah4%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23f7f7f7%3B%0Amargin%2Dleft%3A%208px%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Ah5%2C%20h6%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23ccc%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Aa%20%7B%0Acolor%3A%20%230033dd%3B%0Atext%2Ddecoration%3A%20none%3B%0A%7D%0Aa%3Ahover%20%7B%0Acolor%3A%20%236666ff%3B%20%7D%0Aa%3Avisited%20%7B%0Acolor%3A%20%23800080%3B%20%7D%0Aa%3Avisited%3Ahover%20%7B%0Acolor%3A%20%23BB00BB%3B%20%7D%0Aa%5Bhref%5E%3D%22http%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0Aa%5Bhref%5E%3D%22https%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0A%0Acode%20%3E%20span%2Ekw%20%7B%20color%3A%20%23555%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Edt%20%7B%20color%3A%20%23902000%3B%20%7D%20%0Acode%20%3E%20span%2Edv%20%7B%20color%3A%20%2340a070%3B%20%7D%20%0Acode%20%3E%20span%2Ebn%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Efl%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Ech%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Est%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Eco%20%7B%20color%3A%20%23888888%3B%20font%2Dstyle%3A%20italic%3B%20%7D%20%0Acode%20%3E%20span%2Eot%20%7B%20color%3A%20%23007020%3B%20%7D%20%0Acode%20%3E%20span%2Eal%20%7B%20color%3A%20%23ff0000%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Efu%20%7B%20color%3A%20%23900%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Eer%20%7B%20color%3A%20%23a61717%3B%20background%2Dcolor%3A%20%23e3d2d2%3B%20%7D%20%0A" type="text/css" />
 
 
 
@@ -327,49 +149,49 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <li>ask the user to change his password</li>
 <li>see logs about application usage</li>
 </ul>
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1"></a><span class="co"># Credentials data</span></span>
-<span id="cb1-2"><a href="#cb1-2"></a>credentials &lt;-<span class="st"> </span><span class="kw">data.frame</span>(</span>
-<span id="cb1-3"><a href="#cb1-3"></a>  <span class="dt">user =</span> <span class="kw">c</span>(<span class="st">&quot;shiny&quot;</span>, <span class="st">&quot;shinymanager&quot;</span>),</span>
-<span id="cb1-4"><a href="#cb1-4"></a>  <span class="dt">password =</span> <span class="kw">c</span>(<span class="st">&quot;azerty&quot;</span>, <span class="st">&quot;12345&quot;</span>),</span>
-<span id="cb1-5"><a href="#cb1-5"></a>  <span class="co"># password will automatically be hashed</span></span>
-<span id="cb1-6"><a href="#cb1-6"></a>  <span class="dt">admin =</span> <span class="kw">c</span>(<span class="ot">FALSE</span>, <span class="ot">TRUE</span>),</span>
-<span id="cb1-7"><a href="#cb1-7"></a>  <span class="dt">stringsAsFactors =</span> <span class="ot">FALSE</span></span>
-<span id="cb1-8"><a href="#cb1-8"></a>)</span>
-<span id="cb1-9"><a href="#cb1-9"></a></span>
-<span id="cb1-10"><a href="#cb1-10"></a><span class="co"># you can use keyring package to set database key</span></span>
-<span id="cb1-11"><a href="#cb1-11"></a><span class="kw">library</span>(keyring)</span>
-<span id="cb1-12"><a href="#cb1-12"></a><span class="kw">key_set</span>(<span class="st">&quot;R-shinymanager-key&quot;</span>, <span class="st">&quot;obiwankenobi&quot;</span>)</span>
-<span id="cb1-13"><a href="#cb1-13"></a></span>
-<span id="cb1-14"><a href="#cb1-14"></a><span class="co"># Init the database</span></span>
-<span id="cb1-15"><a href="#cb1-15"></a><span class="kw">create_db</span>(</span>
-<span id="cb1-16"><a href="#cb1-16"></a>  <span class="dt">credentials_data =</span> credentials,</span>
-<span id="cb1-17"><a href="#cb1-17"></a>  <span class="dt">sqlite_path =</span> <span class="st">&quot;path/to/database.sqlite&quot;</span>, <span class="co"># will be created</span></span>
-<span id="cb1-18"><a href="#cb1-18"></a>  <span class="dt">passphrase =</span> <span class="kw">key_get</span>(<span class="st">&quot;R-shinymanager-key&quot;</span>, <span class="st">&quot;obiwankenobi&quot;</span>)</span>
-<span id="cb1-19"><a href="#cb1-19"></a>  <span class="co"># passphrase = &quot;passphrase_wihtout_keyring&quot;</span></span>
-<span id="cb1-20"><a href="#cb1-20"></a>)</span>
-<span id="cb1-21"><a href="#cb1-21"></a></span>
-<span id="cb1-22"><a href="#cb1-22"></a><span class="co"># Wrap your UI with secure_app, enabled admin mode or not</span></span>
-<span id="cb1-23"><a href="#cb1-23"></a>ui &lt;-<span class="st"> </span><span class="kw">secure_app</span>(ui, <span class="dt">enable_admin =</span> <span class="ot">TRUE</span>)</span>
-<span id="cb1-24"><a href="#cb1-24"></a></span>
-<span id="cb1-25"><a href="#cb1-25"></a></span>
-<span id="cb1-26"><a href="#cb1-26"></a>server &lt;-<span class="st"> </span><span class="cf">function</span>(input, output, session) {</span>
-<span id="cb1-27"><a href="#cb1-27"></a>  </span>
-<span id="cb1-28"><a href="#cb1-28"></a>  <span class="co"># check_credentials directly on sqlite db</span></span>
-<span id="cb1-29"><a href="#cb1-29"></a>  res_auth &lt;-<span class="st"> </span><span class="kw">secure_server</span>(</span>
-<span id="cb1-30"><a href="#cb1-30"></a>    <span class="dt">check_credentials =</span> <span class="kw">check_credentials</span>(</span>
-<span id="cb1-31"><a href="#cb1-31"></a>        <span class="st">&quot;path/to/database.sqlite&quot;</span>,</span>
-<span id="cb1-32"><a href="#cb1-32"></a>        <span class="dt">passphrase =</span> <span class="kw">key_get</span>(<span class="st">&quot;R-shinymanager-key&quot;</span>, <span class="st">&quot;obiwankenobi&quot;</span>)</span>
-<span id="cb1-33"><a href="#cb1-33"></a>        <span class="co"># passphrase = &quot;passphrase_wihtout_keyring&quot;</span></span>
-<span id="cb1-34"><a href="#cb1-34"></a>    )</span>
-<span id="cb1-35"><a href="#cb1-35"></a>  )</span>
-<span id="cb1-36"><a href="#cb1-36"></a>  </span>
-<span id="cb1-37"><a href="#cb1-37"></a>  output<span class="op">$</span>auth_output &lt;-<span class="st"> </span><span class="kw">renderPrint</span>({</span>
-<span id="cb1-38"><a href="#cb1-38"></a>    <span class="kw">reactiveValuesToList</span>(res_auth)</span>
-<span id="cb1-39"><a href="#cb1-39"></a>  })</span>
-<span id="cb1-40"><a href="#cb1-40"></a>  </span>
-<span id="cb1-41"><a href="#cb1-41"></a>  <span class="co"># your classic server logic</span></span>
-<span id="cb1-42"><a href="#cb1-42"></a>  ...</span>
-<span id="cb1-43"><a href="#cb1-43"></a>}</span></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Credentials data</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>credentials <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">user =</span> <span class="fu">c</span>(<span class="st">&quot;shiny&quot;</span>, <span class="st">&quot;shinymanager&quot;</span>),</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">password =</span> <span class="fu">c</span>(<span class="st">&quot;azerty&quot;</span>, <span class="st">&quot;12345&quot;</span>),</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>  <span class="co"># password will automatically be hashed</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">admin =</span> <span class="fu">c</span>(<span class="cn">FALSE</span>, <span class="cn">TRUE</span>),</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">stringsAsFactors =</span> <span class="cn">FALSE</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co"># you can use keyring package to set database key</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(keyring)</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="fu">key_set</span>(<span class="st">&quot;R-shinymanager-key&quot;</span>, <span class="st">&quot;obiwankenobi&quot;</span>)</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Init the database</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="fu">create_db</span>(</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>  <span class="at">credentials_data =</span> credentials,</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>  <span class="at">sqlite_path =</span> <span class="st">&quot;path/to/database.sqlite&quot;</span>, <span class="co"># will be created</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>  <span class="at">passphrase =</span> <span class="fu">key_get</span>(<span class="st">&quot;R-shinymanager-key&quot;</span>, <span class="st">&quot;obiwankenobi&quot;</span>)</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>  <span class="co"># passphrase = &quot;passphrase_wihtout_keyring&quot;</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="co"># Wrap your UI with secure_app, enabled admin mode or not</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>ui <span class="ot">&lt;-</span> <span class="fu">secure_app</span>(ui, <span class="at">enable_admin =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>server <span class="ot">&lt;-</span> <span class="cf">function</span>(input, output, session) {</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>  <span class="co"># check_credentials directly on sqlite db</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>  res_auth <span class="ot">&lt;-</span> <span class="fu">secure_server</span>(</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">check_credentials =</span> <span class="fu">check_credentials</span>(</span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;path/to/database.sqlite&quot;</span>,</span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>        <span class="at">passphrase =</span> <span class="fu">key_get</span>(<span class="st">&quot;R-shinymanager-key&quot;</span>, <span class="st">&quot;obiwankenobi&quot;</span>)</span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>        <span class="co"># passphrase = &quot;passphrase_wihtout_keyring&quot;</span></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>  output<span class="sc">$</span>auth_output <span class="ot">&lt;-</span> <span class="fu">renderPrint</span>({</span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>    <span class="fu">reactiveValuesToList</span>(res_auth)</span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>  })</span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a>  <span class="co"># your classic server logic</span></span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a>  ...</span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
 <p>Starting page of the application will be :</p>
 <p><img src="data:image/png;base64,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" style="width:100.0%" /></p>
 <p>Once logged, the application will be launched and a button added to navigate between the app and the admin panel (if user is authorized to access it), and to logout from the application :</p>

@@ -12,14 +12,17 @@ secure_app(
   enable_admin = FALSE,
   head_auth = NULL,
   theme = NULL,
-  language = "en"
+  language = "en",
+  fab_position = "bottom-right"
 )
 
 secure_server(
   check_credentials,
   timeout = 15,
   inputs_list = NULL,
+  max_users = NULL,
   fileEncoding = "",
+  keep_token = FALSE,
   session = shiny::getDefaultReactiveDomain()
 )
 }
@@ -38,7 +41,9 @@ of the authentication page (for custom CSS for example).}
 you can use themes provided by \code{shinythemes}.
 It will affect the authentication panel and the admin page.}
 
-\item{language}{Language to use for labels, supported values are : "en", "fr", "pt-BR".}
+\item{language}{Language to use for labels, supported values are : "en", "fr", "pt-BR", "es", "de", "pl".}
+
+\item{fab_position}{Position for the FAB button, see \code{\link{fab_button}} for options.}
 
 \item{check_credentials}{Function passed to \code{\link{auth_server}}.}
 
@@ -46,7 +51,12 @@ It will affect the authentication panel and the admin page.}
 
 \item{inputs_list}{\code{list}. If database credentials, you can configure inputs for editing users information. See Details.}
 
+\item{max_users}{\code{integer}. If not NULL, maximum of users in sql credentials.}
+
 \item{fileEncoding}{character string: Encoding of logs downloaded file. See \code{\link{write.table}}}
+
+\item{keep_token}{Logical, keep the token used to authenticate in the URL, it allow to refresh the
+application in the browser, but careful the token can be shared between users ! Default to \code{FALSE}.}
 
 \item{session}{Shiny session.}
 }
@@ -57,17 +67,17 @@ A \code{reactiveValues} containing informations about the user connected.
 Secure a Shiny application and manage authentication
 }
 \details{
-If database credentials, you can configure inputs with \code{inputs_list} for editing users information 
-from the admin console. \code{start}, \code{expire}, \code{admin} and \code{password} are not configurable. 
+If database credentials, you can configure inputs with \code{inputs_list} for editing users information
+from the admin console. \code{start}, \code{expire}, \code{admin} and \code{password} are not configurable.
 The others columns are rendering by defaut using a \code{textInput}. You can modify this using \code{inputs_list}.
 \code{inputs_list} must be a named list. Each name must be a column name, and then we must have the function
- shiny to call \code{fun} and the arguments \code{args} like this : 
+ shiny to call \code{fun} and the arguments \code{args} like this :
  \code{
  list(group = list(
-     fun = "selectInput", 
+     fun = "selectInput",
      args = list(
-         choices = c("all", "restricted"), 
-         multiple = TRUE, 
+         choices = c("all", "restricted"),
+         multiple = TRUE,
          selected = c("all", "restricted")
       )
      )
