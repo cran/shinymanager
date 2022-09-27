@@ -80,18 +80,20 @@ logs_ui <- function(id, lan = NULL) {
 
         tags$br(),
 
-        tags$h3(icon("calendar"), lan$get("Number of connections per day"), class = "text-primary"),
+        tags$h3(icon("calendar-days"), lan$get("Number of connections per day"), class = "text-primary"),
         tags$hr(),
         billboarderOutput(outputId = ns("graph_conn_days")),
 
-        tags$br(), tags$br(),
-
-        downloadButton(
-          outputId = ns("download_logs"),
-          label = lan$get("Download logs database"),
-          class = "btn-primary center-block",
-          icon = icon("download")
-        ),
+        if("logs" %in% get_download()){
+          list(tags$br(), tags$br(),
+               
+               downloadButton(
+                 outputId = ns("download_logs"),
+                 label = lan$get("Download logs database"),
+                 class = "btn-primary center-block",
+                 icon = icon("download")
+               ))
+        },
 
         tags$br()
       )
@@ -268,18 +270,22 @@ logs <- function(input, output, session, sqlite_path, passphrase,
   })
 
   output$download_logs <- downloadHandler(
+
     filename = function() {
       paste('shinymanager-logs-', Sys.Date(), '.csv', sep = '')
     },
     content = function(con) {
+      req("logs" %in% get_download())
       conn <- dbConnect(SQLite(), dbname = sqlite_path)
       on.exit(dbDisconnect(conn))
       logs <- read_db_decrypt(conn = conn, name = "logs", passphrase = passphrase)
       # treat old bad admin log
       if(any(duplicated(logs$token))){
         logs$date_days <- substring(logs$server_connected, 1, 10)
-        logs <- logs[!duplicated(logs[, c("user", "token", "date_days")]), ]
+        logs$ind_dup <- duplicated(logs[, c("user", "token", "date_days")])
+        logs <- logs[is.na(logs$token) | (!is.na(logs$token) & !logs$ind_dup), ]
         logs$date_days <- NULL
+        logs$ind_dup <- NULL
       }
       logs$token <- NULL
       users <- read_db_decrypt(conn = conn, name = "credentials", passphrase = passphrase)

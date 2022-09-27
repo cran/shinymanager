@@ -56,7 +56,7 @@ pwd_ui <- function(id, tag_img = NULL, status = "primary", lan = NULL) {
               ),
               tags$span(
                 class = "help-block",
-                icon("info-circle"),
+                icon("circle-info"),
                 lan$get("Password must contain at least one number, one lowercase, one uppercase and must be at least length 6.")
               ),
               tags$br(),
@@ -127,12 +127,21 @@ pwd_server <- function(input, output, session, user, update_pwd, validate_pwd = 
   observeEvent(input$update_pwd, {
     password$relog <- NULL
     removeUI(selector = jns("msg_pwd"))
+  
     if (!identical(input$pwd_one, input$pwd_two)) {
       insertUI(
         selector = jns("result_pwd"),
         ui = tags$div(
           id = ns("msg_pwd"), class = "alert alert-danger",
-          icon("exclamation-triangle"), lan()$get("The two passwords are different")
+          icon("triangle-exclamation"), lan()$get("The two passwords are different")
+        )
+      )
+    } else if (!check_new_pwd(user$user, input$pwd_one)) {
+      insertUI(
+        selector = jns("result_pwd"),
+        ui = tags$div(
+          id = ns("msg_pwd"), class = "alert alert-danger",
+          icon("triangle-exclamation"), lan()$get("New password cannot be the same as old")
         )
       )
     } else {
@@ -141,7 +150,7 @@ pwd_server <- function(input, output, session, user, update_pwd, validate_pwd = 
           selector = jns("result_pwd"),
           ui = tags$div(
             id = ns("msg_pwd"), class = "alert alert-danger",
-            icon("exclamation-triangle"), lan()$get("Password does not respect safety requirements")
+            icon("triangle-exclamation"), lan()$get("Password does not respect safety requirements")
           )
         )
       } else {
@@ -170,7 +179,7 @@ pwd_server <- function(input, output, session, user, update_pwd, validate_pwd = 
             selector = jns("result_pwd"),
             ui = tags$div(
               id = ns("msg_pwd"), class = "alert alert-danger",
-              icon("exclamation-triangle"), lan()$get("Failed to update password")
+              icon("triangle-exclamation"), lan()$get("Failed to update password")
             )
           )
         }

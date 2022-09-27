@@ -146,12 +146,12 @@ auth_ui <- function(id, status = "primary", tags_top = NULL,
 #' @param input,output,session Standard Shiny server arguments.
 #' @param check_credentials Function with two arguments (\code{user},
 #'  the username provided by the user and \code{password}, his/her password).
-#'  Must return a \code{list} with at least 4 slots :
+#'  Must return a \code{list} with at least 2 (or 4 in case of sqlite) slots :
 #'  \itemize{
 #'   \item \strong{result} : logical, result of authentication.
-#'   \item \strong{expired} : logical, is user has expired ? Always \code{FALSE} if \code{db} doesn't have a \code{expire} column.
-#'   \item \strong{authorized} : logical, is user can access to his app ? Always \code{TRUE} if \code{db} doesn't have a \code{applications} column.
-#'   \item \strong{user_info} : the line in \code{db} corresponding to the user.
+#'   \item \strong{user_info} : \code{list}. What you want about user ! (sqlite : the line in \code{db} corresponding to the user).
+#'   \item \strong{expired} : logical, is user has expired ? Always \code{FALSE} if \code{db} doesn't have a \code{expire} column. Optional.
+#'   \item \strong{authorized} : logical, is user can access to his app ? Always \code{TRUE} if \code{db} doesn't have a \code{applications} column. Optional.
 #'  }
 #'  
 #' @param use_token Add a token in the URL to check authentication. Should not be used directly.
@@ -230,7 +230,15 @@ auth_server <- function(input, output, session,
   observeEvent(input$go_auth, {
     removeUI(selector = jns("msg_auth"))
     res_auth <- check_credentials(input$user_id, input$user_pwd)
-    if (isTRUE(res_auth$result)) {
+    
+    # locked account ?
+    locked <- FALSE
+    pwd_failure_limit <- as.numeric(get_pwd_failure_limit())
+    if(length(pwd_failure_limit) > 0 && !is.na(pwd_failure_limit) && !is.infinite(pwd_failure_limit)){
+      locked <- check_locked_account(input$user_id, pwd_failure_limit)
+    }
+    
+    if (isTRUE(res_auth$result) & !locked) {
       removeUI(selector = jns("auth-mod"))
       authentication$result <- TRUE
       authentication$user <- input$user_id
@@ -245,6 +253,18 @@ auth_server <- function(input, output, session,
         session$reload()
       }
       
+    } else if (isTRUE(res_auth$result) & locked) {
+      
+      save_logs_failed(input$user_id, status = "Locked Account")
+      
+      insertUI(
+        selector = jns("result_auth"),
+        ui = tags$div(
+          id = ns("msg_auth"), class = "alert alert-danger",
+          icon("triangle-exclamation"), lan()$get("Your account is locked")
+        )
+      )
+      
     } else {
       if (is.null(res_auth$user_info)) {
         save_logs_failed(input$user_id, status = "Unknown user")
@@ -252,7 +272,7 @@ auth_server <- function(input, output, session,
           selector = jns("result_auth"),
           ui = tags$div(
             id = ns("msg_auth"), class = "alert alert-danger",
-            icon("exclamation-triangle"), lan()$get("Username or password are incorrect")
+            icon("triangle-exclamation"), lan()$get("Username or password are incorrect")
           )
         )
       } else if (isTRUE(res_auth$expired)) {
@@ -261,7 +281,7 @@ auth_server <- function(input, output, session,
           selector = jns("result_auth"),
           ui = tags$div(
             id = ns("msg_auth"), class = "alert alert-danger",
-            icon("exclamation-triangle"), lan()$get("Your account has expired")
+            icon("triangle-exclamation"), lan()$get("Your account has expired")
           )
         )
       } else {
@@ -271,18 +291,30 @@ auth_server <- function(input, output, session,
             selector = jns("result_auth"),
             ui = tags$div(
               id = ns("msg_auth"), class = "alert alert-danger",
-              icon("exclamation-triangle"), lan()$get("You are not authorized for this application")
+              icon("triangle-exclamation"), lan()$get("You are not authorized for this application")
             )
           )
         } else {
+          
           save_logs_failed(input$user_id, status = "Wrong pwd")
-          insertUI(
-            selector = jns("result_auth"),
-            ui = tags$div(
-              id = ns("msg_auth"), class = "alert alert-danger",
-              icon("exclamation-triangle"), lan()$get("Username or password are incorrect")
+          
+          if(!locked){
+            insertUI(
+              selector = jns("result_auth"),
+              ui = tags$div(
+                id = ns("msg_auth"), class = "alert alert-danger",
+                icon("triangle-exclamation"), lan()$get("Username or password are incorrect")
+              )
             )
-          )
+          } else {
+            insertUI(
+              selector = jns("result_auth"),
+              ui = tags$div(
+                id = ns("msg_auth"), class = "alert alert-danger",
+                icon("triangle-exclamation"), lan()$get("Your account is locked")
+              )
+            )
+          }
         }
       }
     }

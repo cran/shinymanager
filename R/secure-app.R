@@ -33,8 +33,8 @@ secure_app <- function(ui,
                        theme = NULL,
                        language = "en",
                        fab_position = "bottom-right") {
-  if (!language %in% c("en", "fr", "pt-BR", "es", "de", "pl")) {
-    warning("Only supported language for the now are: en, fr, pt-BR, es, de, pl", call. = FALSE)
+  if (!language %in% c("en", "fr", "pt-BR", "es", "de", "pl", "ja", "el")) {
+    warning("Only supported language for the now are: en, fr, pt-BR, es, de, pl, ja, el", call. = FALSE)
     language <- "en"
   }
 
@@ -80,7 +80,7 @@ secure_app <- function(ui,
               actionButton(
                 inputId = ".shinymanager_logout",
                 label = lan$get("Logout"),
-                icon = icon("sign-out")
+                icon = icon("right-from-bracket")
               ),
               actionButton(
                 inputId = ".shinymanager_app",
@@ -91,7 +91,7 @@ secure_app <- function(ui,
             shinymanager_where("admin")
           ),
           tabPanel(
-            title = tagList(icon("home"), lan$get("Home")),
+            title = tagList(icon("house"), lan$get("Home")),
             value = "home",
             admin_ui("admin", lan),
             shinymanager_language(lan$get_language())
@@ -109,12 +109,12 @@ secure_app <- function(ui,
             actionButton(
               inputId = ".shinymanager_logout",
               label = lan$get("Logout"),
-              icon = icon("sign-out")
+              icon = icon("right-from-bracket")
             ),
             actionButton(
               inputId = ".shinymanager_admin",
               label = lan$get("Administrator mode"),
-              icon = icon("cogs")
+              icon = icon("gears")
             )
           )
         } else {
@@ -126,7 +126,7 @@ secure_app <- function(ui,
             actionButton(
               inputId = ".shinymanager_logout",
               label = lan$get("Logout"),
-              icon = icon("sign-out")
+              icon = icon("right-from-bracket")
             )
           )
         }
@@ -173,6 +173,9 @@ secure_app <- function(ui,
 #' @param fileEncoding 	character string: Encoding of logs downloaded file. See \code{\link{write.table}}
 #' @param keep_token Logical, keep the token used to authenticate in the URL, it allow to refresh the
 #'  application in the browser, but careful the token can be shared between users ! Default to \code{FALSE}.
+#' @param validate_pwd A \code{function} to validate the password enter by the user.
+#'  Default is to check for the password to have at least one number, one lowercase,
+#'  one uppercase and be of length 6 at least.
 #' @param session Shiny session.
 #'
 #' @details
@@ -194,6 +197,22 @@ secure_app <- function(ui,
 #' )
 #' }
 #'
+#' You can specify if you want to allow downloading users file,  sqlite database and logs from within
+#' the admin panel by invoking \code{options("shinymanager.download")}. It defaults
+#' to \code{c("db", "logs", "users")}, that allows downloading all. You can specify
+#' \code{options("shinymanager.download" = "db"} if you want allow admin to download only
+#' sqlite database, \code{options("shinymanager.download" = "logs")} to allow logs download
+#' or \code{options("shinymanager.download" = "")} to disable all.
+#'
+#' Using \code{options("shinymanager.pwd_validity")}, you can set password validity period. It defaults
+#' to \code{Inf}. You can specify for example
+#' \code{options("shinymanager.pwd_validity" = 90)} if you want to force user changing password each 90 days.
+#'
+#' Using \code{options("shinymanager.pwd_failure_limit")}, you can set password failure limit. It defaults
+#' to \code{Inf}. You can specify for example
+#' \code{options("shinymanager.pwd_failure_limit" = 5)} if you want to lock user account after 5 wrong password.
+#'
+#'
 #' @export
 #'
 #' @importFrom shiny callModule getQueryString parseQueryString
@@ -206,15 +225,16 @@ secure_server <- function(check_credentials,
                           max_users = NULL,
                           fileEncoding = "",
                           keep_token = FALSE,
+                          validate_pwd = NULL,
                           session = shiny::getDefaultReactiveDomain()) {
 
   session$setBookmarkExclude(c(session$getBookmarkExclude(),
-                               "shinymanager_language", 
-                               ".shinymanager_timeout", 
+                               "shinymanager_language",
+                               ".shinymanager_timeout",
                                ".shinymanager_admin",
-                               ".shinymanager_logout", 
+                               ".shinymanager_logout",
                                "shinymanager_where"))
-  
+
   token_start <- isolate(getToken(session = session))
   if (isTRUE(keep_token)) {
     .tok$reset_count(token_start)
@@ -244,6 +264,7 @@ secure_server <- function(check_credentials,
     id = "password",
     user = reactiveValues(user = .tok$get(token_start)$user),
     update_pwd = update_pwd,
+    validate_pwd = validate_pwd,
     use_token = TRUE,
     lan = lan
   )
