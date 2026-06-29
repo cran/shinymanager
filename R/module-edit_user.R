@@ -24,21 +24,32 @@ edit_user_ui <- function(id, credentials, username = NULL, inputs_list = NULL, l
     FUN = function(x) {
       if (identical(x, "start")) {
         value <- unique(data_user[[x]])
-        if (is.null(value) || length(value) > 1) {
-          # value <- Sys.Date()
+        if (is.null(value) || length(value) != 1) {
           value <- NA
         }
         suppressWarnings({
-          dateInput(inputId = ns(x), label = R.utils::capitalize(lan$get("start")), value = value, width = "100%")
+          dateInput(
+            inputId = ns(x),
+            label = R.utils::capitalize(lan$get("start")),
+            value = value,
+            language = lan$get_dateInput(),
+            width = "100%"
+          )
         })
       } else if (identical(x, "expire")) {
         value <- unique(data_user[[x]])
-        if (is.null(value) || length(value) > 1) {
+        if (is.null(value) || length(value) != 1) {
           # value <- Sys.Date() + 60
           value <- NA
         }
         suppressWarnings({
-          dateInput(inputId = ns(x), label = R.utils::capitalize(lan$get("expire")), value = value, width = "100%")
+          dateInput(
+            inputId = ns(x),
+            label = R.utils::capitalize(lan$get("expire")),
+            value = value,
+            language = lan$get_dateInput(),
+            width = "100%"
+          )
         })
       } else if (identical(x, "user") && length(username) > 1) {
         NULL # MULTIPLE USERS: dont modify user name
@@ -54,7 +65,7 @@ edit_user_ui <- function(id, credentials, username = NULL, inputs_list = NULL, l
           checkboxInput(
             inputId = ns(x),
             label = R.utils::capitalize(lan$get("admin")),
-            value = isTRUE(all(as.logical(data_user[[x]])))
+            value = isTRUE(all(as.logical(data_user[[x]]))) & length(data_user[[x]])
           )
         }
       } else {
@@ -78,7 +89,7 @@ edit_user_ui <- function(id, credentials, username = NULL, inputs_list = NULL, l
             list_args$selected <- NULL
           } else {
             if (!is.null(username)){
-              if (list_args$multiple && is.character(data_user[[x]])) {
+              if (isTRUE(list_args$multiple) && is.character(data_user[[x]])) {
                 list_args$selected <- unlist(strsplit(data_user[[x]], ";"))
               } else {
                 list_args$selected <- data_user[[x]]
@@ -141,7 +152,7 @@ edit_user_ui <- function(id, credentials, username = NULL, inputs_list = NULL, l
       width = "100%"
     )
   }
-  
+
   tagList(
     input_list
   )
@@ -187,4 +198,57 @@ update_user <- function(df, value, username) {
   new <-  modifyList(x = user, val = value)
   df[[username]] <- as.data.frame(new, stringsAsFactors = FALSE)
   do.call(rbind, c(df, list(make.row.names = FALSE)))
+}
+
+update_user_sql <- function(config_db, list_value, username) {
+  
+  conn <- connect_sql_db(config_db)
+  on.exit(disconnect_sql_db(conn, config_db))
+  
+  col_names <- db_list_fields_sql(conn, config_db$tables$credentials$tablename) 
+  
+  check_isTruthy <- TRUE
+  if("_sm_enabled_null" %in% names(list_value)){
+    check_isTruthy <- !as.logical(list_value$`_sm_enabled_null`)
+  }
+  list_value <- list_value[intersect(names(list_value), col_names)]
+
+  list_value <- lapply(list_value, function(x) {
+    ifelse(length(x) == 0 | (length(x) == 1 && is.na(x)), NA_character_, paste(x, collapse = ";"))
+  })
+  if(check_isTruthy) {
+    list_value <- list_value[vapply(list_value, isTruthy, logical(1))]
+  }
+
+  if(length(list_value) > 0){
+    udpate_users <- username
+    for(i in 1:length(list_value)){
+      name <- names(list_value)[i]
+      value <- list_value[[i]]
+      if(any(c("start", "expire") %in% name) && is.na(value)){
+        value <- as.Date(NA)
+      }
+
+      if("admin" %in% name){
+        write_logical <- try({
+          tablename <- SQL(config_db$tables$credentials$tablename)
+          request <- glue_sql(config_db$tables$credentials$update, .con = conn)
+          dbExecute(conn, request)
+        }, silent = TRUE)
+        
+        if("try-error" %in% class(write_logical)){
+          value <- as.integer(as.logical(value))
+          tablename <- SQL(config_db$tables$credentials$tablename)
+          request <- glue_sql(config_db$tables$credentials$update, .con = conn)
+          dbExecute(conn, request)
+        }
+      } else {
+        tablename <- SQL(config_db$tables$credentials$tablename)
+        request <- glue_sql(config_db$tables$credentials$update, .con = conn)
+        dbExecute(conn, request)
+      }
+
+    }
+  }
+
 }

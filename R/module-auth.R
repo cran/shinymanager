@@ -9,20 +9,20 @@
 #' @param tags_bottom A \code{tags (div, img, ...)} to be displayed on bottom of the authentication module.
 #' @param background A optionnal \code{css} for authentication background. See example.
 #' @param choose_language \code{logical/character}. Add language selection on top ? TRUE for all supported languages
-#' or a vector of possibilities like \code{c("en", "fr", "pt-BR", "es", "de", "pl")}. If enabled, \code{input$shinymanager_language} is created
+#' or a vector of possibilities like \code{c("en", "fr", "pt-BR", "es", "de", "pl", "ja", "el", "id", "zh-CN", "no")}. If enabled, \code{input$shinymanager_language} is created
 #' @param ... : Used for old version compatibility.
-#' 
-#' 
+#'
+#'
 #' @export
 #'
 #' @name module-authentication
 #'
-#' @importFrom htmltools tagList tags singleton
-#' @importFrom shiny NS fluidRow column textInput passwordInput actionButton uiOutput 
+#' @importFrom htmltools tagList tags singleton tagAppendAttributes
+#' @importFrom shiny NS fluidRow column textInput passwordInput actionButton uiOutput
 #'
 #' @example examples/module-auth.R
-auth_ui <- function(id, status = "primary", tags_top = NULL, 
-                    tags_bottom = NULL, background = NULL, 
+auth_ui <- function(id, status = "primary", tags_top = NULL,
+                    tags_bottom = NULL, background = NULL,
                     choose_language = NULL, lan = NULL, ...) {
   
   ns <- NS(id)
@@ -77,7 +77,7 @@ auth_ui <- function(id, status = "primary", tags_top = NULL,
                     names(choices)[i] <- names(lan_registered)[ind]
                   }
                 }
-                selected = ifelse(lan$get_language() %in% choices, 
+                selected = ifelse(lan$get_language() %in% choices,
                                   lan$get_language(),
                                   choices[1])
                 if(length(choices) == 1){
@@ -109,24 +109,29 @@ auth_ui <- function(id, status = "primary", tags_top = NULL,
                 tags$h3(lan$get("Please authenticate"), id = ns("shinymanager-auth-head"))
               ),
               tags$br(),
-              textInput(
+              tags$div(id=ns("user_input"),
+              tagAppendAttributes(textInput(
                 inputId = ns("user_id"),
                 label = lan$get("Username:"),
                 width = "100%"
-              ),
+              ), .cssSelector = "input", autofocus = NA),
               passwordInput(
                 inputId = ns("user_pwd"),
                 label = lan$get("Password:"),
                 width = "100%"
+              )),
+              tags$br(),
+              tags$div(
+                id = ns("container-btn-ok"),
+                actionButton(
+                  inputId = ns("go_auth"),
+                  label = lan$get("Login"),
+                  width = "100%",
+                  class = paste0("btn-", status)
+                ),
+                tags$br(), tags$br()
               ),
               tags$br(),
-              actionButton(
-                inputId = ns("go_auth"),
-                label = lan$get("Login"),
-                width = "100%",
-                class = paste0("btn-", status)
-              ),
-              tags$br(), tags$br(),
               tags$script(
                 sprintf("bindEnter('%s');", ns(""))
               ),
@@ -153,10 +158,10 @@ auth_ui <- function(id, status = "primary", tags_top = NULL,
 #'   \item \strong{expired} : logical, is user has expired ? Always \code{FALSE} if \code{db} doesn't have a \code{expire} column. Optional.
 #'   \item \strong{authorized} : logical, is user can access to his app ? Always \code{TRUE} if \code{db} doesn't have a \code{applications} column. Optional.
 #'  }
-#'  
+#'
 #' @param use_token Add a token in the URL to check authentication. Should not be used directly.
 #' @param lan A language object. See  \code{\link{use_language}}
-#' 
+#'
 #' @export
 #'
 #' @rdname module-authentication
@@ -171,8 +176,8 @@ auth_ui <- function(id, status = "primary", tags_top = NULL,
 #' @importFrom htmltools tags
 #' @importFrom shiny reactiveValues observeEvent removeUI updateQueryString insertUI is.reactive icon updateActionButton updateTextInput renderUI
 #' @importFrom stats setNames
-auth_server <- function(input, output, session, 
-                        check_credentials, 
+auth_server <- function(input, output, session,
+                        check_credentials,
                         use_token = FALSE, lan = NULL) {
   
   ns <- session$ns
@@ -189,17 +194,9 @@ auth_server <- function(input, output, session,
     }
   }
   
-  
   observe({
-    session$sendCustomMessage(
-      type = "focus_input",
-      message = list(inputId = ns("user_id"))
-    )
-  })
-  
-  observe({
-    if(!is.null(input$language)){
-      lan()$set_language(input$language) 
+    if(!is.null(input$language) && input$language != ""){
+      lan()$set_language(input$language)
       updateTextInput(session, inputId = "user_id", label = lan()$get("Username:"))
       updateTextInput(session, inputId = "user_pwd", label = lan()$get("Password:"))
       updateActionButton(session, inputId = "go_auth", label = lan()$get("Login"))
@@ -207,7 +204,7 @@ auth_server <- function(input, output, session,
       session$sendCustomMessage(
         type = "update_auth_title",
         message = list(
-          inputId = ns("shinymanager-auth-head"), 
+          inputId = ns("shinymanager-auth-head"),
           title = lan()$get("Please authenticate")
         )
       )
@@ -217,7 +214,7 @@ auth_server <- function(input, output, session,
       })
       
       output$label_language <- renderUI({
-        tags$p(paste0(lan()$get("Language"), " :"), 
+        tags$p(paste0(lan()$get("Language"), " :"),
                style = "text-align: right; font-style: italic; margin-top:5px")
       })
       
@@ -229,6 +226,17 @@ auth_server <- function(input, output, session,
   
   observeEvent(input$go_auth, {
     removeUI(selector = jns("msg_auth"))
+    
+    insertUI(
+      selector = jns("container-btn-ok"),
+      ui = tags$div(
+        id = ns("spinner_msg_ok"),
+        tags$img(src = "shinymanager/1497.gif", style = "height:30px;"), 
+        align = "center"
+      ),
+      immediate = TRUE 
+    )
+    
     res_auth <- check_credentials(input$user_id, input$user_pwd)
     
     # locked account ?
@@ -318,6 +326,9 @@ auth_server <- function(input, output, session,
         }
       }
     }
+    
+    removeUI(selector = jns("spinner_msg_ok"))
+    
   }, ignoreInit = TRUE)
   
   return(authentication)

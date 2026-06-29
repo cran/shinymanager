@@ -23,7 +23,7 @@ shinymanager_where <- function(where) {
   # humm, little hack ^^
   tags$div(
     style = "display: none;",
-    selectInput(inputId = "shinymanager_where", label = NULL, 
+    selectInput(inputId = "shinymanager_where", label = NULL,
                choices = where, selected = where, multiple = FALSE)
   )
 }
@@ -169,9 +169,16 @@ unbindDT <- function(id, session = getDefaultReactiveDomain()) {
   )
 }
 
-filelReaderDB <- function(sqlite_path, passphrase, name){
-  conn <- dbConnect(SQLite(), dbname = sqlite_path)
-  on.exit(dbDisconnect(conn))
-  tryCatch(read_db_decrypt(conn = conn, name = name, passphrase = passphrase), 
-           error = function(e) NULL)
+fileReaderSqlite <- function(sqlite_path, passphrase, name){
+    conn <- dbConnect(SQLite(), dbname = sqlite_path)
+    on.exit(dbDisconnect(conn))
+    res <- tryCatch(read_db_decrypt(conn = conn, name = name, passphrase = passphrase), 
+             error = function(e) NULL)
+}
+
+fileReaderSQL <- function(config_db, name){
+    conn <- connect_sql_db(config_db)
+    on.exit(disconnect_sql_db(conn, config_db))
+    res <- tryCatch(db_read_table_sql(conn, config_db$tables[[name]]$tablename), 
+                    error = function(e) NULL)
 }

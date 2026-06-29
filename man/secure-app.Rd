@@ -42,7 +42,7 @@ of the authentication page (for custom CSS for example).}
 you can use themes provided by \code{shinythemes}.
 It will affect the authentication panel and the admin page.}
 
-\item{language}{Language to use for labels, supported values are : "en", "fr", "pt-BR", "es", "de", "pl".}
+\item{language}{Language to use for labels, supported values are : "en", "fr", "pt-BR", "es", "de", "pl", "ja", "el", "id", "zh-CN", "no.}
 
 \item{fab_position}{Position for the FAB button, see \code{\link{fab_button}} for options.}
 
@@ -103,6 +103,17 @@ to \code{Inf}. You can specify for example
 Using \code{options("shinymanager.pwd_failure_limit")}, you can set password failure limit. It defaults
 to \code{Inf}. You can specify for example
 \code{options("shinymanager.pwd_failure_limit" = 5)} if you want to lock user account after 5 wrong password.
+
+Using \code{options("shinymanager.auto_sqlite_reader")}, you can set reactiveFileReader time (milliseconds) used to look at sqlite db only. 
+Used and useful in admin panel to prevent bug having potentially multiple admin session. It defaults to \code{1000}
+ 
+Using \code{options("shinymanager.auto_sql_reader")}, you can set reactiveTimer SQL (not sqlite) admin reader. It defaults
+to \code{Inf} (disabled). It's only needed to prevent potential bug if two ore more admin are updated users
+at the same time.
+  
+Using \code{options("shinymanager.write_logs")}, you can activate or not writing users connection logs. Default to \code{TRUE}
+
+Using \code{options("shinymanager.show_logs")}, you can activate or not showing users connection logs in admin panel. Default to \code{TRUE}
 }
 \note{
 A special input value will be accessible server-side with \code{input$shinymanager_where}

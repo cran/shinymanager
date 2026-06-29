@@ -10,7 +10,7 @@
 #' @param theme Alternative Bootstrap stylesheet, default is to use \code{readable},
 #'  you can use themes provided by \code{shinythemes}.
 #'  It will affect the authentication panel and the admin page.
-#' @param language Language to use for labels, supported values are : "en", "fr", "pt-BR", "es", "de", "pl".
+#' @param language Language to use for labels, supported values are : "en", "fr", "pt-BR", "es", "de", "pl", "ja", "el", "id", "zh-CN", "no.
 #' @param fab_position Position for the FAB button, see \code{\link{fab_button}} for options.
 #'
 #' @note A special input value will be accessible server-side with \code{input$shinymanager_where}
@@ -20,7 +20,7 @@
 #'
 #' @export
 #'
-#' @importFrom shiny parseQueryString fluidPage actionButton icon navbarPage tabPanel
+#' @importFrom shiny parseQueryString fluidPage icon navbarPage tabPanel
 #' @importFrom htmltools tagList
 #'
 #' @name secure-app
@@ -33,8 +33,8 @@ secure_app <- function(ui,
                        theme = NULL,
                        language = "en",
                        fab_position = "bottom-right") {
-  if (!language %in% c("en", "fr", "pt-BR", "es", "de", "pl", "ja", "el")) {
-    warning("Only supported language for the now are: en, fr, pt-BR, es, de, pl, ja, el", call. = FALSE)
+  if (!language %in% c("en", "fr", "pt-BR", "es", "de", "pl", "ja", "el", "id", "zh-CN", "no")) {
+    warning("Only supported language for the now are: en, fr, pt-BR, es, de, pl, ja, el, id, zh-CN, no", call. = FALSE)
     language <- "en"
   }
 
@@ -51,7 +51,7 @@ secure_app <- function(ui,
     token <- gsub('\"', "", query$token)
     admin <- query$admin
     language <- query$language
-    if(!is.null(language)){
+    if (!is.null(language)) {
       lan <- use_language(gsub('\"', "", language))
     }
     if (.tok$is_valid(token)) {
@@ -69,61 +69,65 @@ secure_app <- function(ui,
         )
         return(pwd_ui)
       }
-      if (isTRUE(enable_admin) && .tok$is_admin(token) & identical(admin, "true") & !is.null(.tok$get_sqlite_path())) {
+      if (isTRUE(enable_admin) && .tok$is_admin(token) & identical(admin, "true") && (!is.null(.tok$get_sqlite_path()) | !is.null(.tok$get_sql_config_db()))) {
         navbarPage(
           title = "Admin",
+          id = "sm_admin_nv",
           theme = theme,
           header = tagList(
             tags$style(".navbar-header {margin-left: 16.66% !important;}"),
             fab_button(
               position = fab_position,
-              actionButton(
+              list(
                 inputId = ".shinymanager_logout",
                 label = lan$get("Logout"),
                 icon = icon("right-from-bracket")
               ),
-              actionButton(
+              list(
                 inputId = ".shinymanager_app",
                 label = lan$get("Go to application"),
                 icon = icon("share")
               )
             ),
-            shinymanager_where("admin")
+            shinymanager_where("admin"),
+            # rendered once here (not per tabPanel) to avoid a duplicated
+            # input id 'shinymanager_language' in the navbarPage (#198)
+            shinymanager_language(lan$get_language())
           ),
           tabPanel(
             title = tagList(icon("house"), lan$get("Home")),
             value = "home",
-            admin_ui("admin", lan),
-            shinymanager_language(lan$get_language())
+            admin_ui("admin", lan)
           ),
-          tabPanel(
-            title = lan$get("Logs"),
-            logs_ui("logs", lan),
-            shinymanager_language(lan$get_language())
-          )
+          if(show_logs_enabled()){
+            tabPanel(
+              title = lan$get("Logs"),
+              logs_ui("logs", lan)
+            )
+          }
         )
       } else {
-        if (isTRUE(enable_admin) && .tok$is_admin(token) && !is.null(.tok$get_sqlite_path())) {
+        if (isTRUE(enable_admin) && .tok$is_admin(token) && (!is.null(.tok$get_sqlite_path()) | !is.null(.tok$get_sql_config_db()))) {
           menu <- fab_button(
             position = fab_position,
-            actionButton(
+            list(
               inputId = ".shinymanager_logout",
               label = lan$get("Logout"),
               icon = icon("right-from-bracket")
             ),
-            actionButton(
+            list(
               inputId = ".shinymanager_admin",
               label = lan$get("Administrator mode"),
               icon = icon("gears")
             )
           )
         } else {
-          if (isTRUE(enable_admin) && .tok$is_admin(token) && is.null(.tok$get_sqlite_path())) {
-            warning("Admin mode is only available when using a SQLite database!", call. = FALSE)
+          if (isTRUE(enable_admin) && .tok$is_admin(token) && is.null(.tok$get_sqlite_path()) && is.null(.tok$get_sql_config_db())) {
+            warning("Admin mode is only available when using a SQLite / SQL database!", call. = FALSE)
           }
           menu <- fab_button(
             position = fab_position,
-            actionButton(
+            list(
               inputId = ".shinymanager_logout",
               label = lan$get("Logout"),
               icon = icon("right-from-bracket")
@@ -144,11 +148,11 @@ secure_app <- function(ui,
       args <- get_args(..., fun = auth_ui)
       # patch / message changing tag_img & tag_div
       deprecated <- list(...)
-      if("tag_img" %in% names(deprecated)){
+      if ("tag_img" %in% names(deprecated)) {
         args$tags_top <- deprecated$tag_img
         warning("'tag_img' (auth_ui, secure_app) is now deprecated. Please use 'tags_top'", call. = FALSE)
       }
-      if("tag_div" %in% names(deprecated)){
+      if ("tag_div" %in% names(deprecated)) {
         args$tags_bottom <- deprecated$tag_div
         warning("'tag_div' (auth_ui, secure_app) is now deprecated. Please use 'tags_bottom'", call. = FALSE)
       }
@@ -158,8 +162,10 @@ secure_app <- function(ui,
         theme = theme,
         tags$head(head_auth),
         do.call(auth_ui, args),
-        shinymanager_where("authentication"),
-        shinymanager_language(lan$get_language())
+        shinymanager_where("authentication")
+        # 'shinymanager_language' is rendered (and kept up to date on language
+        # change) by auth_server via output$update_shinymanager_language, so we
+        # must not render a second one here (duplicated input id, #198)
       )
     }
   }
@@ -211,8 +217,18 @@ secure_app <- function(ui,
 #' Using \code{options("shinymanager.pwd_failure_limit")}, you can set password failure limit. It defaults
 #' to \code{Inf}. You can specify for example
 #' \code{options("shinymanager.pwd_failure_limit" = 5)} if you want to lock user account after 5 wrong password.
-#'
-#'
+#' 
+#' Using \code{options("shinymanager.auto_sqlite_reader")}, you can set reactiveFileReader time (milliseconds) used to look at sqlite db only. 
+#' Used and useful in admin panel to prevent bug having potentially multiple admin session. It defaults to \code{1000}
+#'  
+#' Using \code{options("shinymanager.auto_sql_reader")}, you can set reactiveTimer SQL (not sqlite) admin reader. It defaults
+#' to \code{Inf} (disabled). It's only needed to prevent potential bug if two ore more admin are updated users
+#' at the same time.
+#'   
+#' Using \code{options("shinymanager.write_logs")}, you can activate or not writing users connection logs. Default to \code{TRUE}
+#' 
+#' Using \code{options("shinymanager.show_logs")}, you can activate or not showing users connection logs in admin panel. Default to \code{TRUE}
+#' 
 #' @export
 #'
 #' @importFrom shiny callModule getQueryString parseQueryString
@@ -246,7 +262,7 @@ secure_server <- function(check_credentials,
   lan <- reactiveVal(use_language())
   observe({
     lang <- getLanguage(session = session)
-    if(!is.null(lang)) {
+    if (!is.null(lang)) {
       lan(use_language(lang))
     }
   })
@@ -272,24 +288,31 @@ secure_server <- function(check_credentials,
   .tok$set_timeout(timeout)
 
   path_sqlite <- .tok$get_sqlite_path()
-  if (!is.null(path_sqlite)) {
+  config_db <- .tok$get_sql_config_db()
+  
+  if (!is.null(path_sqlite) | !is.null(config_db)) {
     callModule(
       module = admin,
       id = "admin",
       sqlite_path = path_sqlite,
       passphrase = .tok$get_passphrase(),
+      config_db = config_db,
       inputs_list = inputs_list,
       max_users = max_users,
       lan = lan
     )
-    callModule(
-      module = logs,
-      id = "logs",
-      sqlite_path = path_sqlite,
-      passphrase = .tok$get_passphrase(),
-      fileEncoding = fileEncoding,
-      lan = lan
-    )
+    
+    if(show_logs_enabled()){
+      callModule(
+        module = logs,
+        id = "logs",
+        sqlite_path = path_sqlite,
+        passphrase = .tok$get_passphrase(),
+        config_db = config_db,
+        fileEncoding = fileEncoding,
+        lan = lan
+      )
+    }
   }
 
   user_info_rv <- reactiveValues()
@@ -300,11 +323,11 @@ secure_server <- function(check_credentials,
       user_info <- .tok$get(token)
       for (i in names(user_info)) {
         value <- user_info[[i]]
-        if(i %in% "applications"){
+        if (i %in% "applications") {
           value <- strsplit(x = as.character(value), split = ";")
           value <- unlist(x = value, use.names = FALSE)
-        } else if(!is.null(inputs_list)){
-          if(i %in% names(inputs_list) && !is.null(inputs_list[[i]]$args$multiple) && inputs_list[[i]]$args$multiple){
+        } else if (!is.null(inputs_list)) {
+          if (i %in% names(inputs_list) && !is.null(inputs_list[[i]]$args$multiple) && inputs_list[[i]]$args$multiple) {
             value <- strsplit(x = as.character(value), split = ";")
             value <- unlist(x = value, use.names = FALSE)
           }
@@ -344,7 +367,7 @@ secure_server <- function(check_credentials,
       token <- getToken(session = session)
       if (!is.null(token)) {
         valid_timeout <- .tok$is_valid_timeout(token, update = TRUE)
-        if(!valid_timeout){
+        if (!valid_timeout) {
           .tok$remove(token)
           clearQueryString(session = session)
           session$reload()
