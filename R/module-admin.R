@@ -23,13 +23,13 @@ admin_ui <- function(id, lan = NULL) {
         # tags$h2(lan$get("Administrator mode")),
         # tags$br(), tags$br(),
         
-        tags$h3(icon("users"), lan$get("Users"), class = "text-primary"),
+        tags$h3(sm_icon("users"), lan$get("Users"), class = "text-primary"),
         tags$hr(),
         
         actionButton(
           inputId = ns("add_user"),
           label = lan$get("Add a user"),
-          icon = icon("plus"),
+          icon = sm_icon("plus"),
           width = "100%",
           class = "btn-primary"
         ),
@@ -44,7 +44,7 @@ admin_ui <- function(id, lan = NULL) {
           label = "",
           class = "btn-secondary pull-right",
           style = "margin-left: 5px",
-          icon = icon("square-check")
+          icon = sm_icon("square-check")
         ),
         
         actionButton(
@@ -52,14 +52,14 @@ admin_ui <- function(id, lan = NULL) {
           label = lan$get("Edit selected users"),
           class = "btn-primary pull-right disabled",
           style = "margin-left: 5px",
-          icon = icon("pen-to-square")
+          icon = sm_icon("pen-to-square")
         ),
         
         actionButton(
           inputId = ns("remove_selected_users"),
           label = lan$get("Remove selected users"),
           class = "btn-danger pull-right disabled",
-          icon = icon("trash-can")
+          icon = sm_icon("trash-can")
         ),
         
         tags$br(),
@@ -72,12 +72,12 @@ admin_ui <- function(id, lan = NULL) {
               outputId = ns("download_users_database"),
               label = lan$get("Download Users file"),
               class = "btn-primary center-block",
-              icon = icon("download")
+              icon = sm_icon("download")
             )
           )
         },
         
-        tags$h3(icon("key"), lan$get("Passwords"), class = "text-primary"),
+        tags$h3(sm_icon("key"), lan$get("Passwords"), class = "text-primary"),
         tags$hr(),
         
         DTOutput(outputId = ns("table_pwds")),
@@ -90,14 +90,14 @@ admin_ui <- function(id, lan = NULL) {
           label = "",
           class = "btn-secondary pull-right",
           style = "margin-left: 5px",
-          icon = icon("square-check")
+          icon = sm_icon("square-check")
         ),
         
         actionButton(
           inputId = ns("change_selected_pwds"),
           label = lan$get("Force selected users to change password"),
           class = "btn-primary pull-right disabled",
-          icon = icon("key")
+          icon = sm_icon("key")
         ),
         
         if("db" %in% get_download()){
@@ -110,7 +110,7 @@ admin_ui <- function(id, lan = NULL) {
                 outputId = ns("download_sql_database"),
                 label = lan$get("Download SQL database"),
                 class = "btn-primary center-block",
-                icon = icon("download")
+                icon = sm_icon("download")
               )
             )
           )
@@ -137,6 +137,12 @@ admin <- function(input, output, session, sqlite_path, passphrase, config_db, la
   }
   
   token_start <- isolate(getToken(session = session))
+
+  # checked on the server before each change / download: the token must still
+  # be valid (not revoked, not timed out) and belong to an admin
+  admin_allowed <- function() {
+    .tok$is_active(token_start) && .tok$is_admin(token_start)
+  }
   
   update_read_db <- reactiveValues(x = NULL)
   
@@ -239,8 +245,8 @@ admin <- function(input, output, session, sqlite_path, passphrase, config_db, la
     
     users <- users()
     users <- users[, setdiff(names(users), c("password", "is_hashed_password")), drop = FALSE]
-    users$Edit <- input_btns(ns("edit_user"), users$user, "Edit user", icon("pen-to-square"), status = "primary", lan = lan())
-    users$Remove <- input_btns(ns("remove_user"), users$user, "Delete user", icon("trash-can"), status = "danger", lan = lan())
+    users$Edit <- input_btns(ns("edit_user"), users$user, "Edit user", sm_icon("pen-to-square"), status = "primary", lan = lan())
+    users$Remove <- input_btns(ns("remove_user"), users$user, "Delete user", sm_icon("trash-can"), status = "danger", lan = lan())
     users$Select <- input_checkbox_ui(ns("select_mult_users"), users$user, session = session)
     names_lan <- sapply(names(users), function(x) lan()$get(x))
     change <- as.logical(users$admin)
@@ -298,11 +304,23 @@ admin <- function(input, output, session, sqlite_path, passphrase, config_db, la
     pwds <- pwds()
     
     if("n_wrong_pwd" %in% colnames(pwds)){
+      # locked account, when a failure limit is set
+      pwd_failure_limit <- suppressWarnings(as.numeric(get_pwd_failure_limit()))
+      if(is_finite_limit(pwd_failure_limit)){
+        pwds$Locked <- ifelse(!is.na(pwds$n_wrong_pwd) & pwds$n_wrong_pwd >= pwd_failure_limit, lan()$get("Yes"), lan()$get("No"))
+      }
       pwds$n_wrong_pwd <- NULL
     }
-    
-    pwds$`Change password` <- input_btns(ns("change_pwd"), pwds$user, "Ask to change password", icon("key"), status = "primary", lan = lan())
-    pwds$`Reset password` <- input_btns(ns("reset_pwd"), pwds$user, "Reset password", icon("arrow-rotate-left"), status = "warning", lan = lan())
+    # number of self-service resets in a row, only shown when a limit is set
+    if("n_user_reset" %in% colnames(pwds) && is.infinite(get_reset_password_max())){
+      pwds$n_user_reset <- NULL
+    }
+    if("temp_pwd_expire" %in% colnames(pwds)){
+      pwds$temp_pwd_expire <- NULL
+    }
+
+    pwds$`Change password` <- input_btns(ns("change_pwd"), pwds$user, "Ask to change password", sm_icon("key"), status = "primary", lan = lan())
+    pwds$`Reset password` <- input_btns(ns("reset_pwd"), pwds$user, "Reset password", sm_icon("arrow-rotate-left"), status = "warning", lan = lan())
     pwds$Select <- input_checkbox_ui(ns("change_mult_pwds"), pwds$user, session = session)
     names_lan <- sapply(names(pwds), function(x) lan()$get(x))
     change <- as.logical(pwds$must_change)
@@ -368,6 +386,7 @@ admin <- function(input, output, session, sqlite_path, passphrase, config_db, la
   })
   
   observeEvent(input$delete_selected_users, {
+    req(admin_allowed())
     users <- users()
     to_delete <- r_selected_users()
     
@@ -421,6 +440,7 @@ admin <- function(input, output, session, sqlite_path, passphrase, config_db, la
   })
   
   observeEvent(input$changed_password_users, {
+    req(admin_allowed())
     showModal(
       modalDialog(
         title = NULL, footer = NULL, size = "s", easyClose = FALSE, 
@@ -477,7 +497,7 @@ admin <- function(input, output, session, sqlite_path, passphrase, config_db, la
         ui = tags$div(
           id = ns("alert-edituser-exist"),
           class = "alert alert-warning",
-          icon("triangle-exclamation"),
+          sm_icon("triangle-exclamation"),
           lan()$get("User already exist!")
         ),
         immediate = TRUE
@@ -492,6 +512,7 @@ admin <- function(input, output, session, sqlite_path, passphrase, config_db, la
   
   # Write in database edited values for the user
   observeEvent(input$edited_user, {
+    req(admin_allowed())
     users <- users()
     pwds <- pwds()
     newval <- value_edited$user
@@ -533,7 +554,7 @@ admin <- function(input, output, session, sqlite_path, passphrase, config_db, la
     removeModal()
     
     if (inherits(res_edit, "try-error")) {
-      showNotification(ui = lan()$get("Fail to update user"), type = "error")
+      showNotification(ui = lan()$get("Failed to update user"), type = "error")
     } else {
       showNotification(ui = lan()$get("User successfully updated"), type = "message")
       update_read_db$x <- Sys.time()
@@ -564,6 +585,7 @@ admin <- function(input, output, session, sqlite_path, passphrase, config_db, la
   value_mult_edited <- callModule(module = edit_user, id = "edit_mult_user")
   
   observeEvent(input$edited_mult_user, {
+    req(admin_allowed())
     users <- users()
     newval <- value_mult_edited$user
     newval$user <- newval$admin <- NULL
@@ -597,7 +619,7 @@ admin <- function(input, output, session, sqlite_path, passphrase, config_db, la
     removeModal()
     
     if (inherits(res_edit, "try-error")) {
-      showNotification(ui = lan()$get("Fail to update user"), type = "error")
+      showNotification(ui = lan()$get("Failed to update user"), type = "error")
     } else {
       showNotification(ui = lan()$get("User successfully updated"), type = "message")
       update_read_db$x <- Sys.time()
@@ -612,7 +634,7 @@ admin <- function(input, output, session, sqlite_path, passphrase, config_db, la
       showModal(
         modalDialog(
           title = lan()$get("Too many users"),
-          sprintf(lan()$get("Maximum number of users : %s"), max_users)
+          sprintf(lan()$get("Maximum number of users: %s"), max_users)
         )
       )
     } else {
@@ -647,7 +669,7 @@ admin <- function(input, output, session, sqlite_path, passphrase, config_db, la
         ui = tags$div(
           id = ns("alert-user-exist"),
           class = "alert alert-warning",
-          icon("triangle-exclamation"),
+          sm_icon("triangle-exclamation"),
           lan()$get("User already exist!")
         ),
         immediate = TRUE
@@ -662,6 +684,7 @@ admin <- function(input, output, session, sqlite_path, passphrase, config_db, la
   
   # write in database the new user and display his password
   observeEvent(input$added_user, {
+    req(admin_allowed())
     users <- users()
     newuser <- value_added$user
     if("must_change" %in% names(newuser)){
@@ -691,22 +714,29 @@ admin <- function(input, output, session, sqlite_path, passphrase, config_db, la
         if(!"is_hashed_password" %in% colnames(users)){
           users$is_hashed_password <- FALSE
         }
-        newuser[setdiff(colnames(users), colnames(newuser))] <- NA
-        newuser <- newuser[colnames(users)]
-        users <- rbind(users, newuser)
+        users <- rbind_fill(users, newuser[intersect(colnames(newuser), colnames(users))])
         write_db_encrypt(conn = conn, value = users, name = "credentials", passphrase = passphrase)
         resetpwd <- read_db_decrypt(conn = conn, name = "pwd_mngt", passphrase = passphrase)
         if(!"n_wrong_pwd" %in% colnames(resetpwd)){
           resetpwd$n_wrong_pwd <- 0
         }
-        resetpwd <- rbind(resetpwd, data.frame(
+        newpwd <- data.frame(
           user = newuser$user,
           must_change = must_change,
           have_changed = as.character(FALSE),
           date_change = as.character(Sys.Date()),
           n_wrong_pwd = 0,
           stringsAsFactors = FALSE
-        ))
+        )
+        # column added by the self-service reset: empty = no expiration
+        if("temp_pwd_expire" %in% colnames(resetpwd)){
+          newpwd$temp_pwd_expire <- ""
+        }
+        if("n_user_reset" %in% colnames(resetpwd)){
+          newpwd$n_user_reset <- 0
+        }
+        # other columns (custom ones) are filled with NA
+        resetpwd <- rbind_fill(resetpwd, newpwd)
         write_db_encrypt(conn = conn, value = resetpwd, name = "pwd_mngt", passphrase = passphrase)
       } else {
         conn <- connect_sql_db(config_db)
@@ -757,6 +787,7 @@ admin <- function(input, output, session, sqlite_path, passphrase, config_db, la
   
   # store in database that the user must change password on next connection
   observeEvent(input$changed_password, {
+    req(admin_allowed())
     showModal(
       modalDialog(
         title = NULL, footer = NULL, size = "s", easyClose = FALSE, 
@@ -782,6 +813,7 @@ admin <- function(input, output, session, sqlite_path, passphrase, config_db, la
     reset_pwd_modal(ns("reseted_password"), input$reset_pwd, lan())
   })
   observeEvent(input$reseted_password, {
+    req(admin_allowed())
     password <- generate_pwd()
     
     showModal(
@@ -816,7 +848,13 @@ admin <- function(input, output, session, sqlite_path, passphrase, config_db, la
       dbExecute(conn, request)
     }
     
-    res_chg <- try(force_chg_pwd(input$reset_pwd), silent = TRUE)
+    res_chg <- try({
+      force_chg_pwd(input$reset_pwd)
+      # admin-generated password: no expiration, cancels a mailed temporary one
+      set_temp_pwd_expire(input$reset_pwd, "")
+      # and restarts the self-service reset counter
+      set_pwd_mngt_optional(input$reset_pwd, name = "n_user_reset", value = 0, empty = 0)
+    }, silent = TRUE)
     
     removeModal()
     
@@ -849,6 +887,7 @@ admin <- function(input, output, session, sqlite_path, passphrase, config_db, la
   
   # delete the user
   observeEvent(input$delete_user, {
+    req(admin_allowed())
     
     showModal(
       modalDialog(
@@ -896,6 +935,7 @@ admin <- function(input, output, session, sqlite_path, passphrase, config_db, la
       paste('shinymanager-sql-', Sys.Date(), '.sqlite', sep = '')
     },
     content = function(con) {
+      req(admin_allowed())
       req("db" %in% get_download())
       file.copy(sqlite_path, con)
     }
@@ -907,6 +947,7 @@ admin <- function(input, output, session, sqlite_path, passphrase, config_db, la
       paste('shinymanager-users-', Sys.Date(), '.csv', sep = '')
     },
     content = function(con) {
+      req(admin_allowed())
       req("users" %in% get_download())
       conn <- dbConnect(SQLite(), dbname = sqlite_path)
       on.exit(dbDisconnect(conn))

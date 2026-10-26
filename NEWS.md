@@ -1,3 +1,67 @@
+# shinymanager 1.2.0
+
+## Security
+
+* Admin operations (add, edit, delete users, change or reset passwords, downloads, logs export) are
+  now checked on the server and need a valid (not revoked, not timed out) admin token. Before, the
+  admin module was started for every session and its inputs were accepted without authentication
+  (since 1.1.0).
+* A revoked token (logout, timeout) no longer keeps the user identity, the password change needs a
+  valid token, and logout revokes the token even when the logs can't be written.
+
+## New features
+
+* Self-service password reset by email: `options("shinymanager.reset_password" = TRUE)` adds a
+  "Forgot password?" link on the authentication page (username + email, or username only with
+  `"username"`). A temporary password is sent with the `send_mail` function given to
+  `secure_server()` and must be changed on next login. Needs an `email` column (or
+  `shinymanager.email_column`) and a SQLite / SQL backend. Related options:
+  `shinymanager.reset_password_validity` (minutes), `shinymanager.reset_password_max` (resets in a
+  row), `shinymanager.reset_password_cooldown` (seconds between two emails, default `60`, per R
+  process) and `shinymanager.reset_password_unlock` (default `TRUE`). The optional `pwd_mngt`
+  columns (`temp_pwd_expire`, `n_user_reset`) are created with SQLite, to add manually with SQL.
+  The temporary password replaces the current one as soon as the email is sent: see
+  `?secure_server` for the recommended settings.
+* `send_smtp_mail()`: optional SMTP helper based on `emayili` (Suggests), with `timeout` and
+  `max_times`.
+* Logs dashboard: users overview (last connection and application, connections, wrong passwords,
+  resets, locked) and security events per day. Every reset attempt is logged
+  (`Reset password: <reason>`).
+* Admin: `Locked` column in the passwords table when `shinymanager.pwd_failure_limit` is set.
+* The "Forgot password?" link is hidden when the reset can't work (no `send_mail` function, a
+  data.frame backend, or no email column), with a warning giving the reason (once per R process).
+  The option must be set before the authentication page is built (e.g. in `global.R`).
+* (#222) Italian language. Thanks @stewerner
+
+## Behavior changes
+
+* `check_credentials` is evaluated when the session starts: a configuration error (like a missing
+  SQLite / .yml file, now with a dedicated message) shows when the login page loads.
+* SQLite: the credentials are read on each login attempt, so a reset or an admin change is taken
+  into account immediately.
+* An account is locked at the attempt that reaches `shinymanager.pwd_failure_limit` (logged as
+  `Account locked`).
+* With `options("shinymanager.write_logs" = FALSE)`, failed connections are no longer written and
+  the wrong password counter is reset on a successful login.
+* New dependency: `later` (Imports).
+* No database re-initialization is needed to upgrade (see README, *Upgrade from 1.1.x*). Once the
+  optional `pwd_mngt` columns exist in a SQLite database, a 1.1.x version can't add users anymore.
+
+## Bug fixes
+
+* Login and password change with the Enter key right after typing: the typed values are sent
+  before the click (complements #195 and #216).
+* A missing (`NA`) wrong password counter or `must_change` in `pwd_mngt` no longer stops the login.
+* SQLite: adding a user (admin) and writing the logs no longer fail when the `pwd_mngt` or `logs`
+  table has additional columns (custom ones, or the new optional ones): they are filled with `NA`.
+* SQL backend: a logs error at login or logout no longer stops the session (warning).
+* Logs dashboard: the application selector lists the applications with failed connections only,
+  and failed connections of a user on the same day are no longer merged.
+* Icons are displayed again with an old `fontawesome` package (< 0.3.0, Font Awesome 5) or
+  shiny < 1.7: the Font Awesome 5 names are used in that case.
+* Translations: "Maximum number of users", "Failed to update user", "Your account is locked"
+  (pt-BR, es, ja), and the Norwegian label "Maximum number of users: %s".
+
 # shinymanager 1.1.0
 
 * (#220) Added Norwegian Language, Thanks @mcldrchl
